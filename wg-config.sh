@@ -6,8 +6,9 @@ AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
 VERSION="v24.09.10"
 
 addr=
-iface=
+iface=wg0
 port=55820
+config="${HOME}/.config/wg-mgr.yaml"
 pvtkeyfile="${HOME}/.wg_pvt.key"
 pubkeyfile="${HOME}/.wg_pub.key"
 endpoint=
@@ -22,17 +23,17 @@ Synopsis:
 wg-config.sh [options] <action>
 
 Options:
-  -a|--addr   <addr>        : The iface or peer IP Address
-  -c|--config <file>        : Path to the yaml config to create or add
-  -E|--endpoint <host:port> : Set a peer endpoint when using 'addPeer'
-  -i|--interface <iface>    : Sets the interface to create or add to.
-  -k|--keepalive <val>      : Set the peer keepalive value (default: 0)
+  -c|--config    <file>   : Path to the yaml config to create or add
+  -E|--endpoint  <str>    : Set a peer endpoint when using 'addPeer'
+  -i|--interface <iface>  : Sets the interface to use, default: $iface
+  -k|--keepalive <val>    : Set the peer keepalive value, default: $keepalive
+  -p|--port      <val>    : Set the UDP port number, default: $port
 
 Actions:
-  create                    : Creates a new yaml config
-  addPeer <name> <key>      : Adds a peer object to a config
+  create  <ip>            : Create a new config using <ip> as CIDR.
+  addPeer <id> <ip> <key> : Adds a peer object to a config.
+    id: peer name, ip: peer addr, key: peer pubkey
 "
-
 
 
 # ----------------------------------------
@@ -41,10 +42,6 @@ rt=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
-    -a|--addr)
-        addr="$2"
-        shift
-        ;;
     -c|--config)
         config="$2"
         shift
@@ -75,8 +72,9 @@ while [ $# -gt 0 ]; do
         ;;
     *)
         action="$1"
-        name="$2"
-        peerkey="$3"
+        id="$2"
+        addr="$3"
+        peerkey="$4"
         shift $#
         ;;
     esac
@@ -94,11 +92,7 @@ if [ -z "$action" ]; then
     exit 1
 fi
 
-if [ -z "$config" ]; then
-    echo "$PNAME Error, config file not provided"
-    exit 1
-fi
-
+# ----------------------------------------
 
 case "$action" in
 ## CREATE NEW CONFIG
@@ -107,7 +101,7 @@ case "$action" in
         echo "$PNAME Error, config file already exists: '$config'"
         exit 1
     fi
-    if [[ -z "$addr" ]]; then
+    if [[ -z "$id" ]]; then
         echo "$PNAME Error, 'create' missing address"
         exit 1
     fi
@@ -121,7 +115,7 @@ case "$action" in
 ---
 wireguard:
   $iface:
-    addr: $addr
+    addr: $id
     port: $port
     privatekeyfile: "$pvtkeyfile"
     publickeyfile: "$pubkeyfile"
@@ -129,30 +123,33 @@ EOF
 
     echo "$PNAME created config '$config'"
     ;;
+
 ## ADD PEER
 addPeer)
     if [ -z "$iface" ]; then
         echo "$PNAME Error, interface must be provided to addPeer"
         exit 2
     fi
-    if [[ -z "$addr" || -z "$peerkey" ]]; then
+
+    if [[ -z "$id" || -z "$addr" || -z "$peerkey" ]]; then
         echo "$PNAME Error, 'addPeer' missing arguments"
         exit 2
     fi
-    echo "foo"
-    ( yq eval ".wireguard.${iface}.peers.$name = { \"addr\": \"$addr\", \"pubkey\": \"$peerkey\" }" -i $config )
+
+    ( yq eval ".wireguard.${iface}.peers.$id = { \"addr\": \"$addr\", \"pubkey\": \"$peerkey\" }" -i $config )
 
     if [ -n "$endpoint" ]; then
-        ( yq eval ".wireguard.${iface}.peers.$name.endpoint = $endpoint" -i $config )
+        ( yq eval ".wireguard.${iface}.peers.$id.endpoint = $endpoint" -i $config )
     fi
+
     if [ $keepalive -gt 0 ]; then
-        ( yq eval ".wireguard.${iface}.peers.$name.keepalive = $keepalive" -i $config )
+        ( yq eval ".wireguard.${iface}.peers.$id.keepalive = $keepalive" -i $config )
     fi
     
-    ( yq eval ".wireguard.${iface}.peers.$name.default = false" -i $config )
-    ( yq eval ".wireguard.${iface}.peers.$name.allowed_ips = [ \"${addr}/32\" ]" -i $config )
+    ( yq eval ".wireguard.${iface}.peers.$id.default = false" -i $config )
+    ( yq eval ".wireguard.${iface}.peers.$id.allowed_ips = [ \"${addr}/32\" ]" -i $config )
 
-    echo "$PNAME added peer config for '$name'"
+    echo "$PNAME added peer config for '$id'"
     ;;
 
 *)

@@ -126,12 +126,14 @@ if ! which wg >/dev/null 2>&1; then
     echo "$PNAME Error, Wireguard not found in path or not installed."
     exit 1
 fi
+
 if ! which yq >/dev/null 2>&1; then
     echo "$PNAME Error, 'yq' is required but not found in path."
     echo "The golang 'yq' is preferred: https://github.com/mikefarah/yq"
     exit 1
 fi
 
+# -------
 # GENKEY
 if [ "$action" == "genkey" ]; then
     pubfile="${tun:-${default_pubfile}}"
@@ -164,7 +166,10 @@ if [[ ! -r "$config" ]]; then
     exit 1
 fi
 
+# ----------------------------------------
+
 tunnels=$(yq -r '.wireguard | keys | .[]' ${config})
+
 if [ -z "$tunnels" ]; then
     echo "$PNAME Error: No wireguard interfaces defined"
 fi
@@ -193,12 +198,10 @@ for wg in $tunnels; do
         break
     fi
 
-
     ( ip link add dev $wg type wireguard )
     ( ip address add dev $wg $addr )
     ( wg set $wg listen-port $port private-key $pvt )
     ( ip link set $wg up )
-
 
     for peer in $peers; do
         addr=$(yq -r ".wireguard.${wg}.peers.${peer}.addr" $config | awk -F'/' '{ print $1 }')

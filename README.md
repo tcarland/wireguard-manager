@@ -12,6 +12,13 @@ wireguard tunnels. This allows for defining more complex meshes
 and automation of wireguard tunnels in a clean and consistent manner.
 
 
+## Requirements
+
+- bash 4+
+- wireguard (obviously)
+- [yq](https://github.com/mikefarah/yq)
+
+
 ## Configuration
 
 The script uses a YAML Configuration to define a host configuration 
@@ -39,16 +46,21 @@ wireguard:
           - 172.18.0.0/24
 ```
 
-An initial configuration can be generated using the *wg-config.sh* script.
-The script also supports adding a peer to an existing config.
-```sh
-$ wg-config.sh -a 10.0.0.1/24 -p 55820 -i wg0 -c hostcfg.yaml create
-wg-config.sh created config 'hostcfg2.yaml'
+### Config Generator *wg-config.sh*
 
-$ wg-config.sh -a 10.0.0.2 -i wg0 -c hostcfg.yaml addPeer mypeer mypeerpublickey
+An initial configuration can be generated using the *wg-config.sh* script.
+The script also supports adding a peer to an existing config. The tools all
+default to a config location of `${HOME}/.config/wg-mgr.yaml`. Note that 
+*$HOME* can cause confusion when using `sudo`, so defining absolute paths 
+for the config may be needed when not running as *root*.
+```sh
+$ wg-config.sh create 10.0.0.1/24
+wg-config.sh created config '/home/user/.config/wg-mgr.yaml'
+
+$ wg-config.sh addPeer mypeer 10.0.0.2 mypeerpublickey
 wg-config.sh added peer config for 'mypeer'
 
-$ cat hostcfg.yaml
+$ cat ~/.config/wg-mgr.yaml
 ---
 wireguard:
   wg0:
@@ -72,10 +84,10 @@ locations of `${HOME}/.wg_pvt.key` and `${HOME}/.wg_pub.key` for
 the key pair. A key pair can be created as those files easily by
 running `wg.sh genkey`, though the default locations can be changed.
 
-Note that when *not* running directly as root, such as using `sudo`, the 
-default locations can be confused as *$HOME* is used to create them and 
-the key files should be referenced accordingly, ideally using an
-an absolute path in the yaml config.
+Note that, as mentioned above, using `sudo` can confuse key locations
+from the use of `$HOME`. Ensure the key file locations are referenced 
+correctly, ideally using an an absolute path.
+
 
 ## Creating tunnels
 
