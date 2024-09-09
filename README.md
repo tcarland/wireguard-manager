@@ -20,23 +20,23 @@ with the following schema:
 ---
 wireguard:
   wg0:
-    addr: "10.200.8.1/24"
-    port: "55820"
+    addr: 10.200.8.1/24
+    port: 55820
     privatekeyfile: "/root/.wg_pvt.key"
     publickeyfile: "/root/.wg_pub.key"
 
     peers:
       host1:
-        addr: "10.200.8.2"
+        addr: 10.200.8.2
         pubkey: "somepubkey"
         endpoint: "remoteip:port"
         keepalive: 0
         default: false
         allowed_ips:
-          - "10.200.8.2/32"
-          - "172.18.0.0/24"
+          - 10.200.8.2/32
+          - 172.18.0.0/24
         routes:
-          - "172.18.0.0/24"
+          - 172.18.0.0/24
 ```
 
 An initial configuration can be created using the *wg-config.sh* script.
