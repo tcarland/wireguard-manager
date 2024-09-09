@@ -2,8 +2,8 @@
 #  
 # A script to wrap and automate Wireguard functionality.
 #
-pname=${0##\/*}
-version="v24.09.09"
+PNAME=${0##\/*}
+VERSION="v24.09.09"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${HOME}/.wg_pub.key"
@@ -48,7 +48,7 @@ A script for initializing, starting and stopping Wireguard tunnels
 based on pre-defined YAML configuration.
 
 Synopsis:
-$pname [options] <action> [interface]
+$PNAME [options] <action> [interface]
 
 Options:
   -C|--create <yaml>  : Create base yaml config from template.
@@ -102,7 +102,7 @@ while [ $# -gt 0 ]; do
         exit 0
         ;;
     'version'|-V|--version)
-        printf "${pname} $version \n"
+        printf "${PNAME} $VERSION \n"
         exit 0
         ;;
     *)
@@ -121,12 +121,12 @@ if [ -z "$action" ]; then
 fi
 
 if ! which wg >/dev/null 2>&1; then
-    echo "$pname Error, Wireguard not found in path or not installed."
+    echo "$PNAME Error, Wireguard not found in path or not installed."
     exit 1
 fi
 if ! which yq >/dev/null 2>&1; then
-    echo "$pname Error, yq is required but not found in path."
-    echo "The golang yq is preferred: https://github.com/mikefarah/yq"
+    echo "$PNAME Error, 'yq' is required but not found in path."
+    echo "The golang 'yq' is preferred: https://github.com/mikefarah/yq"
     exit 1
 fi
 
@@ -136,14 +136,14 @@ if [ "$action" == "genkey" ]; then
     pvtfile="${arg:-${default_pvtfile}}"
 
     if [ -e $pvtfile ]; then
-        echo "$pname Error, key file already exists: '$pvtfile"
+        echo "$PNAME Error, key file already exists: '$pvtfile"
         exit 3
     fi
 
     ( wg genkey | tee $pvtfile | wg pubkey > $pubfile )
 
     if [ $? -ne 0 ]; then
-        echo "$pname Error creating keypair"
+        echo "$PNAME Error creating keypair"
         exit 3
     fi
     
@@ -153,18 +153,18 @@ if [ "$action" == "genkey" ]; then
 fi
 
 if [[ ! "$action" =~ ^(up|down)$ ]]; then
-    echo "$pname Error: Action unrecognized: '$action'"
+    echo "$PNAME Error: Action unrecognized: '$action'"
     exit 2
 fi
   
 if [[ ! -r "$config" ]]; then
-    echo "$pname Error: Unable to read config $config"
+    echo "$PNAME Error: Unable to read config $config"
     exit 1
 fi
 
 tunnels=$(yq -r '.wireguard | keys | .[]' ${config})
 if [ -z "$tunnels" ]; then
-    echo "$pname Error: No wireguard interfaces defined"
+    echo "$PNAME Error: No wireguard interfaces defined"
 fi
 
 for wg in $tunnels; do
@@ -187,7 +187,7 @@ for wg in $tunnels; do
     fi
 
     if [[ ! -e $pvt || ! -e $pub  ]]; then 
-        echo "$pname Error in key pair, file(s) not found"
+        echo "$PNAME Error in key pair, file(s) not found"
         break
     fi
 
@@ -232,7 +232,7 @@ for wg in $tunnels; do
         wg set $wg ${args[@]}
 
         if [ $? -ne 0 ]; then 
-            echo "$pname Error, Wireguard $wg failure to set peer $peer"
+            echo "$PNAME Error, Wireguard $wg failure to set peer $peer"
             continue
         fi
 

@@ -39,11 +39,6 @@ Actions:
 # MAIN
 rt=0
 
-if [ -f /etc/${configname} ]; then
-    config="/etc/${config}"
-    echo "$PNAME using system config '$config'"
-fi
-
 while [ $# -gt 0 ]; do
     case "$1" in
     -a|--addr)
@@ -88,6 +83,11 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+if ! which yq >/dev/null 2>&1; then
+    echo "$PNAME Error, 'yq' is required but not found in path."
+    echo "The golang 'yq' is preferred: https://github.com/mikefarah/yq"
+    exit 1
+fi
 
 if [ -z "$action" ]; then
     echo "$PNAME Error, action not provided"
