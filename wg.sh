@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.09"
+VERSION="v24.09.10"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${HOME}/.wg_pub.key"
@@ -79,6 +79,7 @@ function wg_gen_key() {
     pvtfile="$2"
 
     ( wg genkey | tee "$pvtfile" | wg pubkey > "$pubfile" )
+    ( chmod 400 $pvtfile $pubfile )
 
     return $?
 }
