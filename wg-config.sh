@@ -99,8 +99,9 @@ if [ -z "$config" ]; then
     exit 1
 fi
 
-case "$action" in
 
+case "$action" in
+## CREATE NEW CONFIG
 'create')
     if [ -e $config ]; then
         echo "$PNAME Error, config file already exists: '$config'"
@@ -128,7 +129,7 @@ EOF
 
     echo "$PNAME created config '$config'"
     ;;
-
+## ADD PEER
 addPeer)
     if [ -z "$iface" ]; then
         echo "$PNAME Error, interface must be provided to addPeer"

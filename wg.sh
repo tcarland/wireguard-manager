@@ -3,6 +3,7 @@
 # A script to wrap and automate Wireguard functionality.
 #
 PNAME=${0##\/*}
+AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
 VERSION="v24.09.09"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
