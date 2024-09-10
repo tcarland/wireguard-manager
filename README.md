@@ -16,7 +16,7 @@ and automation of wireguard tunnels in a clean and consistent manner.
 
 - bash 4+
 - wireguard (obviously)
-- [yq](https://github.com/mikefarah/yq)
+- [yq](https://github.com/mikefarah/yq) v4+
 
 
 ## Configuration
@@ -89,14 +89,15 @@ from the use of `$HOME`. Ensure the key file locations are referenced
 correctly, ideally using an an absolute path.
 
 
-## Creating tunnels
+## Starting Wireguard tunnels
 
 Once the configuration is set, the tunnels can be created by running the 
 `up` action.
 ```sh
 wg.sh up
 ```
-if multiple interfaces are in use, they can be individually targeted as well.
+
+If multiple interfaces are in use, they can be individually targeted as well.
 ```sh
 wg.sh up wg1
 ```
