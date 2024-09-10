@@ -246,7 +246,7 @@ for wg in $tunnels; do
             ( ip route add $route via $addr dev $wg )
         done
 
-        if [[ "${default,,}" == "true"]]; then
+        if [[ "${default,,}" == "true" ]]; then
             ( ip route add default via $addr dev $wg )
         fi
     done
