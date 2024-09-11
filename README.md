@@ -72,6 +72,7 @@ wireguard:
       mypeer:
         addr: 10.0.0.2
         pubkey: mypeerpublickey
+        default: false
         allowed_ips:
           - 10.0.0.2/32
 ```

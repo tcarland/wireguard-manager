@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.10"
+VERSION="v24.09.11"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${HOME}/.wg_pub.key"
@@ -246,7 +246,7 @@ for wg in $tunnels; do
             ( ip route add $route via $addr dev $wg )
         done
 
-        if [[ "${default,,}" == "true"]]; then
+        if [[ "${default,,}" == "true" ]]; then
             ( ip route add default via $addr dev $wg )
         fi
     done
