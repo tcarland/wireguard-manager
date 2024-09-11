@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.11"
+VERSION="v24.09.12"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${HOME}/.wg_pub.key"

@@ -3,11 +3,11 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.11"
+VERSION="v24.09.12"
 
 addr=
 id=
-iface=wg0
+net=wg0
 port=55820
 config="${HOME}/.config/wg-mgr.yaml"
 pvtkeyfile="${HOME}/.wg_pvt.key"
@@ -15,6 +15,8 @@ pubkeyfile="${HOME}/.wg_pub.key"
 endpoint=
 peerkey=
 keepalive=0
+
+cidr_r="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
 
 
 usage="
@@ -26,7 +28,7 @@ wg-config.sh [options] <action>
 Options:
   -c|--config     <file>   : Path to the yaml config to create or add
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
-  -i|--interface  <iface>  : Sets the interface to use, default: $iface
+  -i|--interface  <net>    : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
   -p|--port       <val>    : Set the UDP port number, default: $port
 
@@ -39,6 +41,76 @@ Actions:
                              Note that endpoint should be set for clients.
                              Outputs the new config as ./wg-mgr-<peer>.yaml
 "
+
+# ----------------------------------------
+
+add_peer() {
+    local wg="$1"
+    local name="$2"
+    local ip="$3"
+    local key="$4"
+    local cfg="$5"
+
+    ( yq ".wireguard.${wg}.peers.${name} = \
+    { \"addr\": \"${ip}\", \"pubkey\": \"${key}\", \"default\": false }" -i $cfg )
+    
+    return $?
+}
+
+set_endpoint() {
+    local wg="$1"
+    local name="$2"
+    local ep="$3"
+    local cfg="$4"
+
+    ( yq ".wireguard.${wg}.peers.${name}.endpoint = \"$ep\"" -i $cfg )
+    ( yq '.. style="double"' -i $cfg )
+}
+
+
+set_keepalive() {
+    local wg="$1"
+    local name="$2"
+    local ping="$3"
+    local cfg="$4"
+
+    ( yq ".wireguard.${wg}.peers.${name}.keepalive = $ping" -i $cfg )
+
+    return $?
+}
+
+set_allowed_ips() {
+    local wg="$1"
+    local name="$2"
+    local ip="$3"
+    local cfg="$4"
+    
+    ( yq ".wireguard.${wg}.peers.${name}.allowed_ips = [ \"${ip}/32\" ]" -i $cfg )
+
+    return $?
+}
+
+
+create_config() {
+    local cfg="$1"
+
+    if [ -z "$cfg" ]; then
+        return 1
+    elif [ -e "$cfg" ]; then
+        return 2
+    fi
+
+    cat >$cfg <<EOF
+---
+wireguard:
+  $net:
+    addr: $addr
+    port: $port
+    privatekeyfile: "$pvtkeyfile"
+    publickeyfile: "$pubkeyfile"
+EOF
+    return 0
+}
 
 
 # ----------------------------------------
@@ -60,7 +132,7 @@ while [ $# -gt 0 ]; do
         exit 0
         ;;
     -i|--int*)
-        iface="$2"
+        net="$2"
         shift
         ;;
     -k|--keepalive)
@@ -94,35 +166,15 @@ fi
 
 if [ -z "$action" ]; then
     echo "$PNAME Error, action not provided"
+    echo ""
+    echo "$usage"
     exit 1
 fi
 
 # ----------------------------------------
 
-create_config() {
-    local cfg="$1"
-
-    if [ -z "$cfg" ]; then
-        return 1
-    elif [ -e "$cfg" ]; then
-        return 2
-    fi
-
-    cat >$cfg <<EOF
----
-wireguard:
-  $iface:
-    addr: $addr
-    port: $port
-    privatekeyfile: "$pvtkeyfile"
-    publickeyfile: "$pubkeyfile"
-EOF
-    return 0
-}
-
-# ----------------------------------------
-
 case "$action" in
+
 ## CREATE NEW CONFIG
 'create')
     addr="$id"
@@ -131,13 +183,15 @@ case "$action" in
         echo "$PNAME Error, config file already exists: '$config'"
         exit 1
     fi
-
     if [[ -z "$addr" ]]; then
-        echo "$PNAME Error, 'create' missing address"
+        echo "$PNAME Error, 'create' requires CIDR Address"
         exit 1
+    fi 
+    if [[ ! $addr =~ $cidr_r ]]; then
+        echo "$PNAME Error, address '$addr' must be a valid CIDR Address"
+        exit 2
     fi
-
-    if [[ "$iface" =~ '^wg\d+' ]]; then
+    if [[ "$net" =~ '^wg\d+' ]]; then
         echo "$PNAME Error, interface must follow wgX naming convention"
         exit 2
     fi
@@ -155,60 +209,61 @@ case "$action" in
 
 ## ADD PEER
 addPeer)
-    if [ -z "$iface" ]; then
+    name="$id"
+
+    if [ -z "$net" ]; then
         echo "$PNAME Error, interface must be provided to addPeer"
         exit 2
     fi
-
-    if [[ -z "$id" || -z "$addr" || -z "$peerkey" ]]; then
+    if [[ -z "$name" || -z "$addr" || -z "$peerkey" ]]; then
         echo "$PNAME Error, 'addPeer' missing arguments"
         exit 2
     fi
 
-    ( yq eval ".wireguard.${iface}.peers.${id} = { \"addr\": \"${addr}\", \"pubkey\": \"${peerkey}\" }" -i $config )
+    add_peer "$net" "$name" "$addr" "$peerkey" "$config"
     rt=$?
 
+    if [ $rt -ne 0 ]; then
+        echo "$PNAME Error in addPeer for '$name'"
+        exit $rt
+    fi
+
     if [ -n "$endpoint" ]; then
-        ( yq eval ".wireguard.${iface}.peers.${id}.endpoint = $endpoint" -i $config )
+        set_endpoint "$net" "$name" "$endpoint" "$config"
     fi
-
     if [ $keepalive -gt 0 ]; then
-        ( yq eval ".wireguard.${iface}.peers.${id}.keepalive = $keepalive" -i $config )
+        set_keepalive "$net" "$name" "$keepalive" "$config"
     fi
-    
-    ( yq eval ".wireguard.${iface}.peers.${id}.default = false" -i $config )
-    ( yq eval ".wireguard.${iface}.peers.${id}.allowed_ips = [ \"${addr}/32\" ]" -i $config )
 
-    echo " -> addPeer added client '$id'"
+    set_allowed_ips "$net" "$name" "$addr" "$config" 
+
+    echo " -> addPeer added client '$name'"
     ;;
 
+## CREATE PEER FROM CONFIG
 createFrom)
     name="$addr"
     peerconfig="wg-mgr-${id}.yaml"
-    addr=$(yq -r ".wireguard.${iface}.peers.${id}.addr" $config | awk -F'/' '{ print $1 }')
-    peeraddr=$(yq -r ".wireguard.${iface}.addr" $config)
+    addr=$(yq -r ".wireguard.${net}.peers.${id}.addr" $config | awk -F'/' '{ print $1 }')
+    peeraddr=$(yq -r ".wireguard.${net}.addr" $config)
     peerkey=$(cat $pubkeyfile 2>/dev/null)
 
     if [ -e "$peerconfig" ]; then
         echo "$PNAME Error, peer config '$peerconfig' already exists"
         exit 1
     fi
-
     if [ -z "$name" ]; then
         echo "$PNAME Error, server name must be provided with 'createFrom'"
         exit 2
     fi
-
     if [[ -z "$addr" || "$addr" == "null" ]]; then
         echo "$PNAME Error determining config addr"
         exit 3
     fi
-
     if [[ -z "$peeraddr" || "$peeraddr" == "null" ]]; then
         echo "$PNAME Error determining the peer address from '$config' for $id"
         exit 3
     fi
-
     if [[ -z "$peerkey" ]]; then
         echo "$PNAME Error obtaining pubkey from '$pubkeyfile'"
         exit 3
@@ -218,19 +273,22 @@ createFrom)
 
     create_config "$peerconfig"
 
-    ( yq eval ".wireguard.${iface}.peers.${name} = { \"addr\": \"${peeraddr}\", \"pubkey\": \"${peerkey}\" }" -i $peerconfig )
+    add_peer "$net" "$name" "$peeraddr" "$peerkey" "$peerconfig"
     rt=$?
 
-    if [ -n "$endpoint" ]; then
-        ( yq eval ".wireguard.${iface}.peers.${name}.endpoint = \"$endpoint\"" -i $peerconfig )
+    if [ $rt -ne 0 ]; then
+        echo "$PNAME Error in addPeer for '$name'"
+        exit $rt
     fi
 
-    if [ $keepalive -gt 0 ]; then
-        ( yq eval ".wireguard.${iface}.peers.${name}.keepalive = $keepalive" -i $peerconfig )
+    if [ -n "$endpoint" ]; then
+        set_endpoint "$net" "$name" "$endpoint" "$peerconfig"
     fi
-    
-    ( yq eval ".wireguard.${iface}.peers.${name}.default = false" -i $peerconfig )
-    ( yq eval ".wireguard.${iface}.peers.${name}.allowed_ips = [ \"${peeraddr}/32\" ]" -i $peerconfig )
+    if [ $keepalive -gt 0 ]; then
+        set_keepalive "$net" "$name" "$keepalive" "$peerconfig"
+    fi
+
+    set_allowed_ips "$net" "$name" "$peeraddr" "$peerconfig" 
     ;;
 
 *)
