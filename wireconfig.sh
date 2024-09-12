@@ -10,8 +10,8 @@ id=
 net=wg0
 port=55820
 config="${HOME}/.config/wg-mgr.yaml"
-pvtkeyfile="${HOME}/.wg_pvt.key"
-pubkeyfile="${HOME}/.wg_pub.key"
+pubkeyfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
+pvtkeyfile="${WG_MGR_PVTKEY:-${HOME}/.wg_pvt.key}"
 endpoint=
 peerkey=
 keepalive=0
@@ -334,7 +334,7 @@ createFrom)
     name="$addr"
 
     peerconfig="${output}/wg-mgr-${id}.yaml"
-    addr=$(yq -r ".wireguard.${net}.peers.${id}.addr" $config | awk -F'/' '{ print $1 }')
+    addr=$(yq -r ".wireguard.${net}.peers.${id}.addr" $config)
     peeraddr=$(yq -r ".wireguard.${net}.addr" $config)
     peerkey=$(cat $pubkeyfile 2>/dev/null)
 
@@ -365,7 +365,7 @@ createFrom)
 
     echo " -> createFrom: creating config '$peerconfig' using peer '$id'"
 
-    create_config "$peerconfig"
+    create_net_config "$peerconfig"
     add_peer "$net" "$name" "$peeraddr" "$peerkey" "$peerconfig"
     rt=$?
 

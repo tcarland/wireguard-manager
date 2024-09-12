@@ -1,31 +1,32 @@
 ---
 wireguard:
   wg0:
-    addr: "10.0.0.1/24"
-    port: "55820"
+    addr: 10.0.0.1/24
+    port: 55820
     privatekeyfile: "/root/.wg_pvt.key"
     publickeyfile: "/root/.wg_pub.key"
-
     peers:
       client1:
-        addr: "10.0.0.2"
-        pubkey: "client1pubkey"
+        addr: 10.0.0.2/24
+        pubkey: client1pubkey
+        default: false
         allowed_ips:
-          - "10.0.0.2/32"
+          - 10.0.0.2/24/32
       client2:
-        addr: "10.0.0.3"
-        pubkey: "client2pubkey"
+        addr: 10.0.0.3/24
+        pubkey: client2pubkey
+        default: false
         allowed_ips:
-          - "10.0.0.3/32"
+          - 10.0.0.3/24/32
   wg1:
-    addr: "10.0.1.1/24"
-    port: "55821"
+    addr: 10.0.1.1/24
+    port: 55820
     privatekeyfile: "/root/.wg_pvt.key"
     publickeyfile: "/root/.wg_pub.key"
-
     peers:
       client3:
-        addr: "10.0.1.2"
-        pubkey: "client3pubkey"
+        addr: 10.0.1.2/24
+        pubkey: client3pubkey
+        default: false
         allowed_ips:
-          - "10.0.1.2/32"
+          - 10.0.1.2/24/32

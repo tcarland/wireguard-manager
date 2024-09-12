@@ -5,12 +5,12 @@ wireguard:
     port: "55820"
     privatekeyfile: "/root/.wg_pvt.key"
     publickeyfile: "/root/.wg_pub.key"
-
     peers:
-      server:
-        addr: "10.0.0.1"
+      server1:
+        addr: "10.0.0.1/24"
         pubkey: "serverpubkey"
+        default: "false"
         endpoint: "server:55820"
         keepalive: 30
         allowed_ips:
-          - "10.0.0.1/32"
+          - 10.0.0.1/24/32
