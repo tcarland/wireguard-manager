@@ -15,12 +15,12 @@ pubkeyfile="${HOME}/.wg_pub.key"
 endpoint=
 peerkey=
 keepalive=0
+clobber=1
 
-cidr_r="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
-
+cidr_re="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
 
 usage="
-Create or Updates a configuration for use with the Wireguard Manager.
+Create or update a configuration for use with the Wireguard Manager.
 
 Synopsis:
 wg-config.sh [options] <action>
@@ -28,13 +28,15 @@ wg-config.sh [options] <action>
 Options:
   -c|--config     <file>   : Path to the yaml config to create or add
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
-  -i|--interface  <net>    : Sets the interface to use, default: $net
+  -i|--interface  <netif>  : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
   -p|--port       <val>    : Set the UDP port number, default: $port
+  -X|--clobber             : Overwrite any existing configs (dangerous)
 
 Actions:
   create  <ip>             : Create a new config using <ip> as CIDR.
   addPeer <id> <ip> <key>  : Adds a peer object to a config.
+  addNet  <netif> <addr>   : Adds a new network interface to the config.
   createFrom <peer> <name> : Creates a client wg config from the server
                              <peer> is the name used for the new config
                              <name> is a name reference to the server
@@ -43,6 +45,41 @@ Actions:
 "
 
 # ----------------------------------------
+
+config_has_net() {
+    local wg="$1"
+    local cfg="$2"
+
+    networks=$(yq '.wireguard | keys | .[]' $cfg)
+    for n in $networks; do
+        if [[ "$wg" == "$n" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+net_is_valid() {
+    local wg="$1"
+
+    if [[ $wg =~ wg[0-9]{1,3} ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+addr_is_cidr() {
+    local ip="$1"
+
+    if [[ $ip =~ $cidr_re ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 
 add_peer() {
     local wg="$1"
@@ -56,6 +93,7 @@ add_peer() {
     
     return $?
 }
+
 
 set_endpoint() {
     local wg="$1"
@@ -79,6 +117,7 @@ set_keepalive() {
     return $?
 }
 
+
 set_allowed_ips() {
     local wg="$1"
     local name="$2"
@@ -91,19 +130,23 @@ set_allowed_ips() {
 }
 
 
-create_config() {
+create_net_config() {
     local cfg="$1"
+    local add="$2"
 
     if [ -z "$cfg" ]; then
         return 1
-    elif [ -e "$cfg" ]; then
-        return 2
     fi
 
-    cat >$cfg <<EOF
+    if [ -z "$add" ]; then
+        cat >$cfg <<EOF
 ---
 wireguard:
-  $net:
+EOF
+    fi
+
+    cat >>$cfg <<EOF
+  ${net}:
     addr: $addr
     port: $port
     privatekeyfile: "$pvtkeyfile"
@@ -143,6 +186,9 @@ while [ $# -gt 0 ]; do
         port=$2
         shift
         ;;
+    -X|--clobber)
+        clobber=0
+        ;;
     'version'|-V|--version)
         printf "$PNAME $VERSION \n"
         exit 0
@@ -179,42 +225,75 @@ case "$action" in
 'create')
     addr="$id"
 
-    if [ -e $config ]; then
+    if [[ -e $config && $clobber -eq 1 ]]; then
         echo "$PNAME Error, config file already exists: '$config'"
         exit 1
     fi
+
     if [[ -z "$addr" ]]; then
         echo "$PNAME Error, 'create' requires CIDR Address"
         exit 1
     fi 
-    if [[ ! $addr =~ $cidr_r ]]; then
-        echo "$PNAME Error, address '$addr' must be a valid CIDR Address"
-        exit 2
-    fi
-    if [[ "$net" =~ '^wg\d+' ]]; then
+    
+    if ! net_is_valid "$net"; then
         echo "$PNAME Error, interface must follow wgX naming convention"
         exit 2
     fi
 
-    create_config "$config"
+    if ! addr_is_cidr "$addr"; then
+        echo "$PNAME Error, address '$addr' must be a valid CIDR Address"
+        exit 2
+    fi
+
+    create_net_config "$config"
     rt=$?
 
     if [ $rt -ne 0 ]; then
-        echo "$PNAME Error in create_config()"
+        echo "$PNAME Error in 'create' config"
     else
         echo " -> created config '$config'"
     fi
 
     ;;
 
+## CREATE NEW NETWORK
+addNet*)
+    net="$id"
+    if ! net_is_valid "$net"; then
+        echo "$PNAME Error, interface must follow wgX naming convention" >&2
+        exit 2
+    fi
+
+    if ! addr_is_cidr "$addr"; then
+        echo "$PNAME Error, address '$addr' must be a valid CIDR Address" >&2
+        exit 2
+    fi
+
+    if config_has_net "$net" "$config"; then
+        echo "$PNAME Error, configuration has an interface defined as '$net'" >&2
+        exit 2
+    fi
+
+    create_net_config "$config" "add"
+    rt=$?
+
+    if [ $rt -ne 0 ]; then
+        echo "$PNAME Error in 'addNet' to config"  >&2
+    else
+        echo " -> added network interface for '$wg: $net"
+    fi
+
+    ;;
+
 ## ADD PEER
-addPeer)
+'addPeer')
     name="$id"
 
     if [ -z "$net" ]; then
         echo "$PNAME Error, interface must be provided to addPeer"
         exit 2
     fi
+
     if [[ -z "$name" || -z "$addr" || -z "$peerkey" ]]; then
         echo "$PNAME Error, 'addPeer' missing arguments"
         exit 2
@@ -231,6 +310,7 @@ addPeer)
     if [ -n "$endpoint" ]; then
         set_endpoint "$net" "$name" "$endpoint" "$config"
     fi
+
     if [ $keepalive -gt 0 ]; then
         set_keepalive "$net" "$name" "$keepalive" "$config"
     fi
@@ -248,22 +328,26 @@ createFrom)
     peeraddr=$(yq -r ".wireguard.${net}.addr" $config)
     peerkey=$(cat $pubkeyfile 2>/dev/null)
 
-    if [ -e "$peerconfig" ]; then
+    if [[ -e "$peerconfig" && $clobber -eq 1 ]]; then
         echo "$PNAME Error, peer config '$peerconfig' already exists"
         exit 1
     fi
+
     if [ -z "$name" ]; then
-        echo "$PNAME Error, server name must be provided with 'createFrom'"
+        echo "$PNAME Error, server(peer) name must be provided with 'createFrom'"
         exit 2
     fi
+
     if [[ -z "$addr" || "$addr" == "null" ]]; then
         echo "$PNAME Error determining config addr"
         exit 3
     fi
+
     if [[ -z "$peeraddr" || "$peeraddr" == "null" ]]; then
         echo "$PNAME Error determining the peer address from '$config' for $id"
         exit 3
     fi
+
     if [[ -z "$peerkey" ]]; then
         echo "$PNAME Error obtaining pubkey from '$pubkeyfile'"
         exit 3
@@ -291,6 +375,7 @@ createFrom)
     set_allowed_ips "$net" "$name" "$peeraddr" "$peerconfig" 
     ;;
 
+## DEFAULT NO ACTION
 *)
     echo "$PNAME Error, action not recognized"
     rt=1
