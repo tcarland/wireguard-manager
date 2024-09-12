@@ -15,6 +15,8 @@ pubkeyfile="${HOME}/.wg_pub.key"
 endpoint=
 peerkey=
 keepalive=0
+
+output="."
 clobber=1
 
 cidr_re="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
@@ -30,6 +32,8 @@ Options:
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
   -i|--interface  <netif>  : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
+  -o|--output     <path>   : The output path for client configs 'createFrom' 
+                             default output path is '.'
   -p|--port       <val>    : Set the UDP port number, default: $port
   -X|--clobber             : Overwrite any existing configs (dangerous)
 
@@ -182,6 +186,10 @@ while [ $# -gt 0 ]; do
         keepalive=$2
         shift
         ;;
+    -o|--output)
+        output="$2"
+        shift
+        ;;
     -p|--port)
         port=$2
         shift
@@ -259,6 +267,7 @@ case "$action" in
 ## CREATE NEW NETWORK
 addNet*)
     net="$id"
+
     if ! net_is_valid "$net"; then
         echo "$PNAME Error, interface must follow wgX naming convention" >&2
         exit 2
@@ -323,7 +332,8 @@ addNet*)
 ## CREATE PEER FROM CONFIG
 createFrom)
     name="$addr"
-    peerconfig="wg-mgr-${id}.yaml"
+
+    peerconfig="${output}/wg-mgr-${id}.yaml"
     addr=$(yq -r ".wireguard.${net}.peers.${id}.addr" $config | awk -F'/' '{ print $1 }')
     peeraddr=$(yq -r ".wireguard.${net}.addr" $config)
     peerkey=$(cat $pubkeyfile 2>/dev/null)
@@ -356,7 +366,6 @@ createFrom)
     echo " -> createFrom: creating config '$peerconfig' using peer '$id'"
 
     create_config "$peerconfig"
-
     add_peer "$net" "$name" "$peeraddr" "$peerkey" "$peerconfig"
     rt=$?
 

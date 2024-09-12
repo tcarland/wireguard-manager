@@ -130,6 +130,19 @@ wireguard:
           - 10.0.0.1/24/32
 ```
 
+## Example
+
+Another example using *wireconfig.sh* to build the examples found in this repo.
+```sh
+./wg.sh genkey
+./wireconfig.sh -c example/wg-mgr-server.yaml create 10.0.0.1/24
+./wireconfig.sh -c example/wg-mgr-server.yaml addPeer client1 10.0.0.2/24 client1pubkey
+./wireconfig.sh -c example/wg-mgr-server.yaml addPeer client2 10.0.0.3/24 client2pubkey
+./wireconfig.sh -c example/wg-mgr-server.yaml addNetwork wg1 10.0.1.1/24
+./wireconfig.sh -c example/wg-mgr-server.yaml -i wg1 addPeer client3 10.0.1.2/24 client3pubkey
+mv ./wg-mgr-client*.yaml example/
+```
+
 ## Starting Wireguard tunnels
 
 Once the configuration is set, the tunnels can be created by running the 

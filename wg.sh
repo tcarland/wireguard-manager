@@ -7,8 +7,8 @@ AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
 VERSION="v24.09.12"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
-default_pubfile="${HOME}/.wg_pub.key"
-default_pvtfile="${HOME}/.wg_pvt.key"
+default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
+default_pvtfile="${WG_MGR_PVTKEY:-${HOME}/.wg_pvt.key}"
 
 action=
 tun=
@@ -68,8 +68,9 @@ Options:
 
   [interface]         : Run action on the given interface only (optional).
 
- The yaml configuration can be set via \$WG_MGR_CONFIG to override
- the default location of '$config'.
+ The yaml config location can be set via \$WG_MGR_CONFIG to override the
+ default of '$config'.
+ The default key pair can be set via \$WG_MGR_PUBKEY and \$WG_MGR_PVTKEY
 "
 
 # ---
