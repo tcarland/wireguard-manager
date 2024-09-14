@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.12"
+VERSION="v24.09.13"
 
 addr=
 id=
@@ -12,6 +12,7 @@ port=55820
 config="${HOME}/.config/wg-mgr.yaml"
 pubkeyfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
 pvtkeyfile="${WG_MGR_PVTKEY:-${HOME}/.wg_pvt.key}"
+pskkeyfile="${WG_MGR_PSKKEY:-${HOME}/.wg_psk.key}"
 endpoint=
 peerkey=
 keepalive=0
@@ -156,7 +157,12 @@ EOF
     privatekeyfile: "$pvtkeyfile"
     publickeyfile: "$pubkeyfile"
 EOF
-    return 0
+
+    if [ -e $pskkeyfile ]; then
+        ( yq ".wireguard.${net}.presharedkeyfile = \"$pskkeyfile\"" -i $cfg )
+    fi
+
+    return $?
 }
 
 

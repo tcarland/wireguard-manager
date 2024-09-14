@@ -4,15 +4,17 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.12"
+VERSION="v24.09.13"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
 default_pvtfile="${WG_MGR_PVTKEY:-${HOME}/.wg_pvt.key}"
+default_pskfile="${WG_MGR_PSK:-${HOME}/.wg_psk.key}"
 
 action=
 tun=
 arg=
+nat=
 
 yaml_schema="
 ## NOTES
@@ -29,6 +31,7 @@ wireguard:
     port: "55820"
     privatekeyfile: "/root/.wg_pvt.key"
     publickeyfile: "/root/.wg_pub.key"
+    presharedkeyfile: "/root/.wg_psk.key"
 
     peers:
       host1:
@@ -55,6 +58,7 @@ Options:
   -C|--create <yaml>  : Create base yaml config from template.
   -f|--file   <yaml>  : Path to yaml config file, 
                          default is '$config'
+  -N|--nat   <extif>  : Enable/Disable NAT for traffic leaving <extif> 
   -h|--help           : Show usage info and exit.
   -V|--version        : Show version info and exit.
 
@@ -65,6 +69,7 @@ Options:
                          two file arguments, or uses the default locations 
                          of  '$default_pubkey' 
                          and '$default_pvtkey'
+   genpsk  <pskfile>  : Creates PreShared Key file, default as '$pskfile'
 
   [interface]         : Run action on the given interface only (optional).
 
@@ -75,12 +80,35 @@ Options:
 
 # ---
 
-function wg_gen_key() {
-    pubfile="$1"
-    pvtfile="$2"
+wg_gen_key() {
+    local pubfile="$1"
+    local pvtfile="$2"
 
     ( wg genkey | tee "$pvtfile" | wg pubkey > "$pubfile" )
     ( chmod 400 $pvtfile $pubfile )
+
+    return $?
+}
+
+
+is_netif() {
+    local eif="$1"
+    ( ip link list $eif >/dev/null 2>&1 )
+    return $?
+}
+
+
+ip_forwarding()
+{
+    local enable=$1
+    local ipf="/proc/sys/net/ipv4/ip_forward"
+
+    if [ -z "$enable" ]; then
+        ( cat $ipf )
+    elif [ $(cat $ipf) -ne 1 ]; then
+        echo " -> enable ip_forwarding"
+        ( sh -c "echo '1' > $ipf" ) 2>/dev/null
+    fi
 
     return $?
 }
@@ -98,6 +126,10 @@ while [ $# -gt 0 ]; do
         ;;
     -f|--file|--config)
         config="$2"
+        shift
+        ;;
+    -n|--NAT|--nat)
+        nat="$2"
         shift
         ;;
     'help'|-h|--help)
@@ -155,6 +187,16 @@ if [ "$action" == "genkey" ]; then
     echo " -> Public Key: "
     cat $pubfile
     exit $?
+elif [ "$action" == "genpsk" ]; then
+    pskfile="${tun:-${default_pskfile}}"
+
+    if [ -e $pskfile ]; then
+        echo "$PNAME Error, psk file already exists: '$pskfile'"
+        exit 3
+    fi
+
+    ( wg genpsk > $pskfile )
+    exit $?
 fi
 
 if [[ ! "$action" =~ ^(up|down)$ ]]; then
@@ -184,8 +226,9 @@ for wg in $tunnels; do
 
     addr=$(yq -r ".wireguard.${wg}.addr" $config)
     port=$(yq -r ".wireguard.${wg}.port" $config)
-    pvt=$(yq -r ".wireguard.${wg}.privatekeyfile" $config)
     pub=$(yq -r ".wireguard.${wg}.publickeyfile" $config)
+    pvt=$(yq -r ".wireguard.${wg}.privatekeyfile" $config)
+    psk=$(yq -r ".wireguard.${wg}.presharedkeyfile" $config)
     peers=$(yq -r ".wireguard.${wg}.peers | keys | .[]" $config)
 
     if [ "$action" == "down" ]; then
@@ -203,6 +246,15 @@ for wg in $tunnels; do
     ( ip address add dev $wg $addr )
     ( wg set $wg listen-port $port private-key $pvt )
     ( ip link set $wg up )
+
+    if [ $? -ne 0 ]; then 
+        echo "$PNAME Error configuring link for $wg"
+        exit 2
+    fi
+
+    if [[ -e $pskfile ]]; then
+        ( wg set $wg pre-shared-key $pskfile )
+    fi
 
     for peer in $peers; do
         addr=$(yq -r ".wireguard.${wg}.peers.${peer}.addr" $config | awk -F'/' '{ print $1 }')
@@ -252,6 +304,24 @@ for wg in $tunnels; do
         fi
     done
 done
+
+if [ -n "$nat" ]; then
+    if ! which iptables >/dev/null 2>&1; then
+        echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules"
+    elif is_netif "$nat"; then
+        if [ "$action" == "down" ]; then
+            ( iptables -D POSTROUTING -t nat -o $nat -j MASQUERADE )
+        else
+            ( iptables -A POSTROUTING -t nat -o $nat -j MASQUERADE )
+            ip_fowarding "1"
+        fi
+        if [ $? -ne 0 ]; then
+            echo "$PNAME Warning, NAT setting failed"
+        fi
+    else
+        echo "$PNAME Warning, interface '$nat' does not appear valid."
+    fi
+fi 
 
 exit 0
 
