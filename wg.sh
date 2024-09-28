@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.13"
+VERSION="v24.09.25"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -67,15 +67,16 @@ Options:
    down               : Disables wg interfaces.
    genkey <pub> <pvt> : Generate a Wireguard key pair. Optionally takes
                          two file arguments, or uses the default locations 
-                         of  '$default_pubkey' 
-                         and '$default_pvtkey'
-   genpsk  <pskfile>  : Creates PreShared Key file, default as '$pskfile'
+                         of  '$default_pubfile' 
+                         and '$default_pvtfile'
+   genpsk  <pskfile>  : Creates PreShared Key file, default as '$default_pskfile'
 
   [interface]         : Run action on the given interface only (optional).
 
  The yaml config location can be set via \$WG_MGR_CONFIG to override the
  default of '$config'.
  The default key pair can be set via \$WG_MGR_PUBKEY and \$WG_MGR_PVTKEY
+ as well as \$WG_MGR_PSK for using a preshared key.
 "
 
 # ---
