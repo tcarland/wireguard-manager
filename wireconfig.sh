@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.28"
+VERSION="v24.09.29"
 
 addr=
 id=
@@ -16,11 +16,11 @@ pskkeyfile="${WG_MGR_PSKKEY:-${HOME}/.wg_psk.key}"
 endpoint=
 peerkey=
 keepalive=0
-
 output="."
 clobber=1
 
 cidr_re="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
+
 
 usage="
 Create or update a configuration for use with the Wireguard Manager.
@@ -85,7 +85,6 @@ addr_is_cidr() {
     return 1
 }
 
-
 add_peer() {
     local wg="$1"
     local name="$2"
@@ -99,7 +98,6 @@ add_peer() {
     return $?
 }
 
-
 set_endpoint() {
     local wg="$1"
     local name="$2"
@@ -109,7 +107,6 @@ set_endpoint() {
     ( yq ".wireguard.${wg}.peers.${name}.endpoint = \"$ep\"" -i $cfg )
     ( yq '.. style="double"' -i $cfg )
 }
-
 
 set_keepalive() {
     local wg="$1"
@@ -122,18 +119,16 @@ set_keepalive() {
     return $?
 }
 
-
 set_allowed_ips() {
     local wg="$1"
     local name="$2"
-    local ip="$3"
+    local ip=$(echo "$3" | awk -F'/' '{ print $1 }')
     local cfg="$4"
     
     ( yq ".wireguard.${wg}.peers.${name}.allowed_ips = [ \"${ip}/32\" ]" -i $cfg )
 
     return $?
 }
-
 
 create_net_config() {
     local cfg="$1"
