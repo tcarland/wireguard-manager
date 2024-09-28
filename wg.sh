@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.25"
+VERSION="v24.09.28"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -55,9 +55,8 @@ Synopsis:
 $PNAME [options] <action> [interface]
 
 Options:
-  -C|--create <yaml>  : Create base yaml config from template.
-  -f|--file   <yaml>  : Path to yaml config file, 
-                         default is '$config'
+  -C|--create <yaml>  : Create a base yaml config from the template.
+  -f|--file   <yaml>  : Yaml config path, default is '$config'
   -N|--nat   <extif>  : Enable/Disable NAT for traffic leaving <extif> 
   -h|--help           : Show usage info and exit.
   -V|--version        : Show version info and exit.

@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.09.13"
+VERSION="v24.09.28"
 
 addr=
 id=
@@ -29,7 +29,7 @@ Synopsis:
 wg-config.sh [options] <action>
 
 Options:
-  -c|--config     <file>   : Path to the yaml config to create or add
+  -c|--config     <file>   : Yaml config path if not default '$config'.
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
   -i|--interface  <netif>  : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
@@ -244,7 +244,7 @@ case "$action" in
         exit 1
     fi
 
-    if [[ -z "$addr" ]]; then
+    if [ -z "$addr" ]; then
         echo "$PNAME Error, 'create' requires CIDR Address"
         exit 1
     fi 
@@ -364,7 +364,7 @@ createFrom)
         exit 3
     fi
 
-    if [[ -z "$peerkey" ]]; then
+    if [ -z "$peerkey" ]; then
         echo "$PNAME Error obtaining pubkey from '$pubkeyfile'"
         exit 3
     fi
@@ -396,5 +396,7 @@ createFrom)
     rt=1
     ;;
 esac
+
+echo "$PNAME finished."
 
 exit $rt
