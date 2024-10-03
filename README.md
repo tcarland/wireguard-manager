@@ -2,7 +2,8 @@ Wireguard Manager
 =================
 
 A tool wrapping the Wireguard CLI for creating and managing 
-Wireguard tunnels.
+Wireguard tunnels using YAML for descriptive configs and ease 
+of automation.
 
 Why the wrapper?   
 
