@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.10.01"
+VERSION="v24.12.12"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -162,7 +162,7 @@ fi
 
 if ! which yq >/dev/null 2>&1; then
     echo "$PNAME Error, 'yq' is required but not found in path."
-    echo "The golang 'yq' is preferred: https://github.com/mikefarah/yq"
+    echo "The golang 'yq' is needed: https://github.com/mikefarah/yq"
     exit 1
 fi
 
@@ -324,4 +324,3 @@ if [ -n "$nat" ]; then
 fi 
 
 exit 0
-
