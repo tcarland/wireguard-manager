@@ -8,7 +8,7 @@ of automation.
 Why the wrapper?   
 
 Wireguard tunnels are easy to create and the CLI easily scriptable. 
-This wrapper defines a declaritive configuration (yaml) to represent 
+This wrapper defines a declaritive YAML configuration to represent 
 wireguard tunnels. This allows for defining more complex meshes
 and automation of wireguard tunnels in a clean and consistent manner.
 
@@ -16,7 +16,7 @@ and automation of wireguard tunnels in a clean and consistent manner.
 ## Requirements
 
 - bash 4+
-- wireguard (obviously)
+- wireguard 
 - [yq](https://github.com/mikefarah/yq) v4+
 
 
@@ -49,14 +49,14 @@ wireguard:
 
 ### Creating key pairs
 
-The *wg.sh* script relies a few defaults to simplify configuration.
+The *wg.sh* script relies on a few defaults to simplify configuration.
 As shown in the previous yaml examples, the tool uses the default
 locations of `${HOME}/.wg_pvt.key` and `${HOME}/.wg_pub.key` for
 the key pair.
 
-Note that using `sudo` can confuse key locations
-from the use of `$HOME`. Ensure the key file locations are referenced 
-correctly, ideally using an an absolute path.
+Note that using `sudo` can confuse key locations from the use of `$HOME`. 
+Ensure the key file locations are referenced correctly, ideally using an 
+absolute path to avoid said confusion.
 
 Using the *wg.sh* script with the `genkey` option will generate a key pair
 in the default location.
@@ -70,13 +70,13 @@ Alternate locations can also be provided.
 wg.sh genkey "/path/to/publickey" "/path/to/privatekey"
 ```
 
-### Config Generator *wg-config.sh*
+### Config Generator *wireconfig.sh*
 
-An initial configuration can be generated using the *wg-config.sh* script.
+An initial configuration can be generated using the *wireconfig.sh* script.
 The script also supports adding a peer to an existing config. The tools all
 default to a config location of `${HOME}/.config/wg-mgr.yaml`. Again, 
 *$HOME* can cause confusion when using `sudo`, so defining absolute paths 
-for the config may be needed when not running as *root*.
+for the config may be necessary.
 ```sh
 ./wg-config.sh create 10.0.0.1/24
  -> created config '/root/.config/wg-mgr.yaml'
@@ -91,7 +91,6 @@ for the config may be needed when not running as *root*.
 Note that the *mypeerpublickey* above represents the client public key 
 that was not created first in the above steps as *genkey* is generally 
 ran on the client host directly.
-
 
 The resulting Server config: `cat /root/.config/wg-mgr.yaml`
 ```yaml
@@ -152,10 +151,10 @@ mkdir test
 Once the configuration is set, the tunnels can be created by running the 
 `up` action.
 ```sh
-wg.sh up
+./wg.sh up
 ```
 
 If multiple interfaces are in use, they can be individually targeted as well.
 ```sh
-wg.sh up wg1
+./wg.sh up wg1
 ```
