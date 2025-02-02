@@ -15,7 +15,7 @@ and automation of wireguard tunnels in a clean and consistent manner.
 
 ## Requirements
 
-- bash 4+
+- bash v4+
 - wireguard 
 - [yq](https://github.com/mikefarah/yq) v4+
 
