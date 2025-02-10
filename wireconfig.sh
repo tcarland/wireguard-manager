@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v24.12.12"
+VERSION="v25.02.12"
 
 addr=
 id=
@@ -29,7 +29,7 @@ Synopsis:
 $PNAME [options] <action>
 
 Options:
-  -c|--config     <file>   : Yaml config path if not default '$config'.
+  -c|--config     <file>   : The config file if not default '$config'.
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
   -i|--interface  <netif>  : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
@@ -39,9 +39,10 @@ Options:
   -X|--clobber             : Overwrite any existing configs (dangerous)
 
 Actions:
-  create  <ip>             : Create a new config using <ip> as CIDR.
+  create  <ip>             : Create a new config using <ip> as a CIDR.
   addPeer <id> <ip> <key>  : Adds a peer object to a config.
   addNet  <netif> <addr>   : Adds a new network interface to the config.
+                             Only needed beyond the first 'wg0' interface.
   createFrom <peer> <name> : Creates a client wg config from the server
                              <peer> is the name used for the new config
                              <name> is a name reference to the server
@@ -130,12 +131,23 @@ set_allowed_ips() {
     return $?
 }
 
+
 create_net_config() {
     local cfg="$1"
     local add="$2"
+    local path="${cfg%/*}"
 
     if [ -z "$cfg" ]; then
         return 1
+    fi
+
+    if [[ ! -d $path ]]; then
+        ( mkdir -p "$path" )
+        if [ $? -ne 0 ]; then
+            echo "$PNAME Error, path does not exist for '$path'" >&2
+            echo "  Failed to create path '$path'" >&2
+            return 2
+        fi
     fi
 
     if [ -z "$add" ]; then
@@ -260,7 +272,7 @@ case "$action" in
     if [ $rt -ne 0 ]; then
         echo "$PNAME Error in 'create' config"
     else
-        echo " -> created config '$config'"
+        echo " -> Created config '$config'"
     fi
 
     ;;
