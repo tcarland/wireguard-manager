@@ -163,182 +163,203 @@ if [ -z "$action" ]; then
 fi
 
 if ! which wg >/dev/null 2>&1; then
-    echo "$PNAME Error, Wireguard not found in path or not installed."
+    echo "$PNAME Error, Wireguard not found in path or not installed." >&2
     exit 1
 fi
 
 if ! which yq >/dev/null 2>&1; then
-    echo "$PNAME Error, 'yq' is required but not found in path."
-    echo "The golang 'yq' is needed: https://github.com/mikefarah/yq"
+    echo "$PNAME Error, 'yq' is required but not found in path." >&2
+    echo "The golang 'yq' is needed: https://github.com/mikefarah/yq" >&2
     exit 1
 fi
 
 if [ ${UID} -gt 0 ]; then
-    echo " -> Running as non-root, so using 'sudo'"
     wgcmd="sudo $wgcmd"
     ipcmd="sudo $ipcmd"
     shcmd="sudo $shcmd"
     iptcmd="sudo $iptcmd"
 fi
 
-# -------
+rt=0
+
+case "$action" in
 # GENKEY
-if [ "$action" == "genkey" ]; then
+'genkey')
     pubfile="${tun:-${default_pubfile}}"
     pvtfile="${arg:-${default_pvtfile}}"
 
     if [ -e $pvtfile ]; then
-        echo "$PNAME Error, key file already exists: '$pvtfile"
-        exit 3
+        echo "$PNAME Error, key file already exists: '$pvtfile" >&2
+        rt=3
+        break
     fi
 
     ( $wgcmd genkey | tee $pvtfile | $wgcmd pubkey > $pubfile )
 
-    if [ $? -ne 0 ]; then
-        echo "$PNAME Error creating keypair"
-        exit 3
+    rt=$?
+    if [ $rt -ne 0 ]; then
+        echo "$PNAME Error running 'genkey'" >&2
+        break
     fi
     
     echo " -> Public Key: "
     cat $pubfile
-    exit $?
-elif [ "$action" == "genpsk" ]; then
+    ;;
+
+# GENPSK
+'genpsk')
     pskfile="${tun:-${default_pskfile}}"
 
     if [ -e $pskfile ]; then
-        echo "$PNAME Error, psk file already exists: '$pskfile'"
-        exit 3
-    fi
-
-    ( $wgcmd genpsk > $pskfile )
-    exit $?
-elif [ "$action" == "status" ]; then
-    ( sudo wg show )
-    exit $?
-fi
-
-if [[ ! "$action" =~ ^(up|down)$ ]]; then
-    echo "$PNAME Error: Action unrecognized: '$action'"
-    exit 2
-fi
-  
-if [[ ! -r "$config" ]]; then
-    echo "$PNAME Error: Unable to read config $config"
-    exit 1
-fi
-
-# ----------------------------------------
-
-tunnels=$(yq -r '.wireguard | keys | .[]' ${config})
-
-if [ -z "$tunnels" ]; then
-    echo "$PNAME Error: No wireguard interfaces defined"
-fi
-
-for wg in $tunnels; do
-    if [[ -n "$tun" && "$tun" != "$wg" ]]; then
-        continue
-    fi
-
-    echo " -> Interface: $wg : $action"
-
-    addr=$(yq -r ".wireguard.${wg}.addr" $config)
-    port=$(yq -r ".wireguard.${wg}.port" $config)
-    pub=$(yq -r ".wireguard.${wg}.publickeyfile" $config)
-    pvt=$(yq -r ".wireguard.${wg}.privatekeyfile" $config)
-    psk=$(yq -r ".wireguard.${wg}.presharedkeyfile" $config)
-    peers=$(yq -r ".wireguard.${wg}.peers | keys | .[]" $config)
-
-    if [ "$action" == "down" ]; then
-        ( $ipcmd link set $wg down )
-        ( $ipcmd link del $wg )
-        continue
-    fi
-
-    if [[ ! -e $pvt || ! -e $pub  ]]; then 
-        echo "$PNAME Error in key pair, file(s) not found"
+        echo "$PNAME Error, psk file already exists: '$pskfile'" >&2
+        rt=3
         break
     fi
 
-    ( $ipcmd link add dev $wg type wireguard )
-    ( $ipcmd address add dev $wg $addr )
-    ( $wgcmd set $wg listen-port $port private-key $pvt )
-    ( $ipcmd link set $wg up )
+    ( $wgcmd genpsk > $pskfile )
+    rt=$?
+    ;;
 
-    if [ $? -ne 0 ]; then 
-        echo "$PNAME Error configuring link for $wg"
-        exit 2
+# SHOW STATUS
+'status'|'show'|'ls')
+    ( sudo wg show )
+    rt=$?
+    ;;
+
+# INTERFACE UP|DOWN
+'up'|'down')
+    if [[ ! -r "$config" ]]; then
+        echo "$PNAME Error: Unable to read config $config" >&2
+        rt=1
+        break
     fi
 
-    if [[ -e $pskfile ]]; then
-        ( $wgcmd set $wg pre-shared-key $pskfile )
+    tunnels=$(yq -r '.wireguard | keys | .[]' ${config})
+
+    if [ -z "$tunnels" ]; then
+        echo "$PNAME Error: No wireguard interfaces defined" >&2
+        rt=1
+        break
     fi
 
-    for peer in $peers; do
-        addr=$(yq -r ".wireguard.${wg}.peers.${peer}.addr" $config | awk -F'/' '{ print $1 }')
-        peerkey=$(yq -r ".wireguard.${wg}.peers.${peer}.pubkey" $config)
-        endpoint=$(yq -r ".wireguard.${wg}.peers.${peer}.endpoint" $config)
-        default=$(yq -r ".wireguard.${wg}.peers.${peer}.default" $config)
-        ping=$(yq -r ".wireguard.${wg}.peers.${peer}.keepalive" $config)
-        ips=$(yq -r ".wireguard.${wg}.peers.${peer}.allowed_ips | .[]" $config | tr '\n' ',' | sed 's/,$//' )
-        routes=$(yq -r ".wireguard.${wg}.peers.${peer}.routes | .[]" $config | tr '\n' ',' | sed 's/,$//' )
-        
-        args=("peer" "$peerkey")
-
-        # optional endpoint
-        if [[ "$endpoint" != "null" ]]; then
-            args+=("endpoint" "$endpoint")
-        fi
-
-        # optional keepalive
-        if [[ "$ping" != "null" ]]; then
-            args+=("persistent-keepalive" "$ping")
-        fi
-
-        # default allowed-ips to peer addr and routes
-        if [[ -z "$ips" || "$ips" == "null" ]]; then
-            ips="${addr}/32"
-            for route in $routes; do
-                ips="${ips},${route}"
-            done
-        fi
-        args+=("allowed-ips" "$ips")
-
-        echo " -> wg set $wg ${args[@]}"
-        $wgcmd set $wg ${args[@]}
-
-        if [ $? -ne 0 ]; then 
-            echo "$PNAME Error, Wireguard $wg failure to set peer $peer"
+    for wg in $tunnels; do
+        if [[ -n "$tun" && "$tun" != "$wg" ]]; then
             continue
         fi
 
-        for route in $routes; do 
-            echo " -> ip route $route via $addr dev $wg"
-            ( $ipcmd route add $route via $addr dev $wg )
-        done
+        echo " -> Interface: $wg : $action"
 
-        if [[ "${default,,}" == "true" ]]; then
-            ( $ipcmd route add default via $addr dev $wg )
-        fi
-    done
-done
+        addr=$(yq -r ".wireguard.${wg}.addr" $config)
+        port=$(yq -r ".wireguard.${wg}.port" $config)
+        pub=$(yq -r ".wireguard.${wg}.publickeyfile" $config)
+        pvt=$(yq -r ".wireguard.${wg}.privatekeyfile" $config)
+        psk=$(yq -r ".wireguard.${wg}.presharedkeyfile" $config)
+        peers=$(yq -r ".wireguard.${wg}.peers | keys | .[]" $config)
 
-if [ -n "$nat" ]; then
-    if ! which iptables >/dev/null 2>&1; then
-        echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules"
-    elif is_netif "$nat"; then
         if [ "$action" == "down" ]; then
-            ( $iptcmd -D POSTROUTING -t nat -o $nat -j MASQUERADE )
-        else
-            ( $iptcmd -A POSTROUTING -t nat -o $nat -j MASQUERADE )
-            ip_fowarding "1"
+            ( $ipcmd link set $wg down )
+            ( $ipcmd link del $wg )
+            continue
         fi
-        if [ $? -ne 0 ]; then
-            echo "$PNAME Warning, NAT setting failed"
-        fi
-    else
-        echo "$PNAME Warning, interface '$nat' does not appear valid."
-    fi
-fi 
 
-exit 0
+        if [[ ! -e $pvt || ! -e $pub  ]]; then 
+            echo "$PNAME Error in key pair, file(s) not found" >&2
+            rt=2
+            break
+        fi
+
+        ( $ipcmd link add dev $wg type wireguard 2>/dev/null )
+        ( $ipcmd address add dev $wg $addr 2>/dev/null )
+        ( $wgcmd set $wg listen-port $port private-key $pvt )
+        ( $ipcmd link set $wg up )
+
+        if [ $? -ne 0 ]; then 
+            echo "$PNAME Error configuring link for $wg" >&2
+            rt=2
+            break
+        fi
+
+        if [[ -e $pskfile ]]; then
+            ( $wgcmd set $wg pre-shared-key $pskfile )
+        fi
+
+        for peer in $peers; do
+            addr=$(yq -r ".wireguard.${wg}.peers.${peer}.addr" $config | awk -F'/' '{ print $1 }')
+            peerkey=$(yq -r ".wireguard.${wg}.peers.${peer}.pubkey" $config)
+            endpoint=$(yq -r ".wireguard.${wg}.peers.${peer}.endpoint" $config)
+            default=$(yq -r ".wireguard.${wg}.peers.${peer}.default" $config)
+            ping=$(yq -r ".wireguard.${wg}.peers.${peer}.keepalive" $config)
+            ips=$(yq -r ".wireguard.${wg}.peers.${peer}.allowed_ips | .[]" $config | tr '\n' ',' | sed 's/,$//' )
+            routes=$(yq -r ".wireguard.${wg}.peers.${peer}.routes | .[]" $config | tr '\n' ',' | sed 's/,$//' )
+            
+            args=("peer" "$peerkey")
+
+            # optional endpoint
+            if [[ "$endpoint" != "null" ]]; then
+                args+=("endpoint" "$endpoint")
+            fi
+
+            # optional keepalive
+            if [[ "$ping" != "null" ]]; then
+                args+=("persistent-keepalive" "$ping")
+            fi
+
+            # default allowed-ips to peer addr and routes
+            if [[ -z "$ips" || "$ips" == "null" ]]; then
+                ips="${addr}/32"
+                for route in $routes; do
+                    ips="${ips},${route}"
+                done
+            fi
+            args+=("allowed-ips" "$ips")
+
+            echo " -> wg set $wg ${args[@]}"
+            $wgcmd set $wg ${args[@]}
+
+            if [ $? -ne 0 ]; then 
+                echo "$PNAME Error, Wireguard $wg failure to set peer $peer"
+                continue
+            fi
+
+            for route in $routes; do 
+                echo " -> ip route $route via $addr dev $wg"
+                ( $ipcmd route add $route via $addr dev $wg 2>/dev/null )
+            done
+
+            if [[ "${default,,}" == "true" ]]; then
+                ( $ipcmd route add default via $addr dev $wg 2>/dev/null )
+            fi
+        done
+    done
+
+    if [ -n "$nat" ]; then
+        if ! which iptables >/dev/null 2>&1; then
+            echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules"
+        elif is_netif "$nat"; then
+            if [ "$action" == "down" ]; then
+                ( $iptcmd -D POSTROUTING -t nat -o $nat -j MASQUERADE )
+            else
+                ( $iptcmd -A POSTROUTING -t nat -o $nat -j MASQUERADE )
+                ip_fowarding "1"
+            fi
+            rt=$?
+            if [ $rt -ne 0 ]; then
+                echo "$PNAME Warning, NAT setting failed" >&2
+            fi
+        else
+            echo "$PNAME Warning, interface '$nat' does not appear valid." >&2
+            rt=1
+        fi
+    fi
+    ;;
+
+# DEFAULT
+*)
+    if [[ ! "$action" =~ ^(up|down)$ ]]; then
+        echo "$PNAME Error: Action unrecognized: '$action'" >&2
+        rt=1
+    fi
+    ;;
+esac
+
+exit $rt
