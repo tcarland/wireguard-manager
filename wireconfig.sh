@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.02.02"
+VERSION="v25.02.12"
 
 addr=
 id=

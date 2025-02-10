@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.02.02"
+VERSION="v25.02.12"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -15,15 +15,21 @@ action=
 tun=
 arg=
 nat=
+uid=${UID}
+
+wgcmd="wg"
+ipcmd="ip"
+shcmd="sh"
+iptcmd="iptables"
 
 yaml_schema="
 ## NOTES
 # 'endpoint' is optional for client-side configs.
 # 'allowed-ips' is optional and should not overlap across peers. 
 #   defaults to the peer 'addr'/32
-#   use 0.0.0.0/0 on client-side only for closed tunnel
+#   use a default route on client-side for a closed tunnel.
 # set 'default' to 'true' to add default route (clients only)
-# set 'keepalive' to a positive value for client / nat situations
+# set 'keepalive' to a positive value for client NAT situations.
 ---
 wireguard:
   wg0:
@@ -84,7 +90,7 @@ wg_gen_key() {
     local pubfile="$1"
     local pvtfile="$2"
 
-    ( wg genkey | tee "$pvtfile" | wg pubkey > "$pubfile" )
+    ( ${wgcmd} genkey | tee "$pvtfile" | wg pubkey > "$pubfile" )
     ( chmod 400 $pvtfile $pubfile )
 
     return $?
@@ -106,8 +112,8 @@ ip_forwarding()
     if [ -z "$enable" ]; then
         ( cat $ipf )
     elif [ $(cat $ipf) -ne 1 ]; then
-        echo " -> enable ip_forwarding"
-        ( sh -c "echo '1' > $ipf" ) 2>/dev/null
+        echo " -> Enable ip_forwarding"
+        ( ${shcmd} -c "echo '1' > $ipf" ) 2>/dev/null
     fi
 
     return $?
@@ -166,6 +172,14 @@ if ! which yq >/dev/null 2>&1; then
     exit 1
 fi
 
+if [ ${UID} -gt 0 ]; then
+    echo " -> Running as non-root, so using 'sudo'"
+    wgcmd="sudo $wgcmd"
+    ipcmd="sudo $ipcmd"
+    shcmd="sudo $shcmd"
+    iptcmd="sudo $iptcmd"
+fi
+
 # -------
 # GENKEY
 if [ "$action" == "genkey" ]; then
@@ -177,7 +191,7 @@ if [ "$action" == "genkey" ]; then
         exit 3
     fi
 
-    ( wg genkey | tee $pvtfile | wg pubkey > $pubfile )
+    ( $wgcmd genkey | tee $pvtfile | $wgcmd pubkey > $pubfile )
 
     if [ $? -ne 0 ]; then
         echo "$PNAME Error creating keypair"
@@ -195,7 +209,7 @@ elif [ "$action" == "genpsk" ]; then
         exit 3
     fi
 
-    ( wg genpsk > $pskfile )
+    ( $wgcmd genpsk > $pskfile )
     exit $?
 fi
 
@@ -232,8 +246,8 @@ for wg in $tunnels; do
     peers=$(yq -r ".wireguard.${wg}.peers | keys | .[]" $config)
 
     if [ "$action" == "down" ]; then
-        ( ip link set $wg down )
-        ( ip link del $wg )
+        ( $ipcmd link set $wg down )
+        ( $ipcmd link del $wg )
         continue
     fi
 
@@ -242,10 +256,10 @@ for wg in $tunnels; do
         break
     fi
 
-    ( ip link add dev $wg type wireguard )
-    ( ip address add dev $wg $addr )
-    ( wg set $wg listen-port $port private-key $pvt )
-    ( ip link set $wg up )
+    ( $ipcmd link add dev $wg type wireguard )
+    ( $ipcmd address add dev $wg $addr )
+    ( $wgcmd set $wg listen-port $port private-key $pvt )
+    ( $ipcmd link set $wg up )
 
     if [ $? -ne 0 ]; then 
         echo "$PNAME Error configuring link for $wg"
@@ -253,7 +267,7 @@ for wg in $tunnels; do
     fi
 
     if [[ -e $pskfile ]]; then
-        ( wg set $wg pre-shared-key $pskfile )
+        ( $wgcmd set $wg pre-shared-key $pskfile )
     fi
 
     for peer in $peers; do
@@ -287,7 +301,7 @@ for wg in $tunnels; do
         args+=("allowed-ips" "$ips")
 
         echo " -> wg set $wg ${args[@]}"
-        wg set $wg ${args[@]}
+        $wgcmd set $wg ${args[@]}
 
         if [ $? -ne 0 ]; then 
             echo "$PNAME Error, Wireguard $wg failure to set peer $peer"
@@ -296,11 +310,11 @@ for wg in $tunnels; do
 
         for route in $routes; do 
             echo " -> ip route $route via $addr dev $wg"
-            ( ip route add $route via $addr dev $wg )
+            ( $ipcmd route add $route via $addr dev $wg )
         done
 
         if [[ "${default,,}" == "true" ]]; then
-            ( ip route add default via $addr dev $wg )
+            ( $ipcmd route add default via $addr dev $wg )
         fi
     done
 done
@@ -310,9 +324,9 @@ if [ -n "$nat" ]; then
         echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules"
     elif is_netif "$nat"; then
         if [ "$action" == "down" ]; then
-            ( iptables -D POSTROUTING -t nat -o $nat -j MASQUERADE )
+            ( $iptcmd -D POSTROUTING -t nat -o $nat -j MASQUERADE )
         else
-            ( iptables -A POSTROUTING -t nat -o $nat -j MASQUERADE )
+            ( $iptcmd -A POSTROUTING -t nat -o $nat -j MASQUERADE )
             ip_fowarding "1"
         fi
         if [ $? -ne 0 ]; then
