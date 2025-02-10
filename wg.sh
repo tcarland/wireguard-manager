@@ -75,6 +75,7 @@ Options:
                           of  '$default_pubfile' 
                           and '$default_pvtfile'
    genpsk  <pskfile>  : Create PreShared Key file, default '$default_pskfile'
+   status             : Shows the current wg config and device info.
 
   [interface]         : Run action on the given interface only (optional).
 
@@ -210,6 +211,9 @@ elif [ "$action" == "genpsk" ]; then
     fi
 
     ( $wgcmd genpsk > $pskfile )
+    exit $?
+elif [ "$action" == "status" ]; then
+    ( sudo wg show )
     exit $?
 fi
 
