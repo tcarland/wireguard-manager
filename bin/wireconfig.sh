@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.02.12"
+VERSION="v25.05.25"
 
 addr=
 id=
@@ -20,7 +20,6 @@ output="."
 clobber=1
 
 cidr_re="^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$"
-
 
 usage="
 Create or update a configuration for use with the Wireguard Manager script.
@@ -227,7 +226,7 @@ done
 
 if ! which yq >/dev/null 2>&1; then
     echo "$PNAME Error, 'yq' is required but not found in path."
-    echo "The golang 'yq' is needed: https://github.com/mikefarah/yq"
+    echo "Install the golang-based 'yq': https://github.com/mikefarah/yq"
     exit 1
 fi
 
