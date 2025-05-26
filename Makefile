@@ -5,5 +5,5 @@ ifeq ($(TCAMAKE_PREFIX),)
 endif
 
 install:
-	$(CP bin/wg.sh $(TCAMAKE_PREFIX)/bin/
-	$(CP bin/wireconfig.sh $(TCAMAKE_PREFIX)/bin/
+	sudo $(CP) bin/wg.sh $(TCAMAKE_PREFIX)/bin/
+	sudo $(CP) bin/wireconfig.sh $(TCAMAKE_PREFIX)/bin/
