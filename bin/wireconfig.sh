@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.05.25"
+VERSION="v25.06.01"
 
 addr=
 id=
@@ -225,8 +225,8 @@ while [ $# -gt 0 ]; do
 done
 
 if ! which yq >/dev/null 2>&1; then
-    echo "$PNAME Error, 'yq' is required but not found in path."
-    echo "Install the golang-based 'yq': https://github.com/mikefarah/yq"
+    echo "$PNAME Error, 'yq' is required, but not found in path." >&2
+    echo "Install the golang-based 'yq': https://github.com/mikefarah/yq" >&2
     exit 1
 fi
 
@@ -246,22 +246,22 @@ case "$action" in
     addr="$id"
 
     if [[ -e $config && $clobber -eq 1 ]]; then
-        echo "$PNAME Error, config file already exists: '$config'"
+        echo "$PNAME Error, config file already exists: '$config'" >&2
         exit 1
     fi
 
     if [ -z "$addr" ]; then
-        echo "$PNAME Error, 'create' requires CIDR Address"
+        echo "$PNAME Error, 'create' requires CIDR Address" >&2
         exit 1
     fi 
     
     if ! net_is_valid "$net"; then
-        echo "$PNAME Error, interface must follow wgX naming convention"
+        echo "$PNAME Error, interface must follow wgX naming convention" >&2
         exit 2
     fi
 
     if ! addr_is_cidr "$addr"; then
-        echo "$PNAME Error, address '$addr' must be a valid CIDR Address"
+        echo "$PNAME Error, address '$addr' must be a valid CIDR Address" >&2
         exit 2
     fi
 
@@ -269,11 +269,10 @@ case "$action" in
     rt=$?
 
     if [ $rt -ne 0 ]; then
-        echo "$PNAME Error in 'create' config"
+        echo "$PNAME Error in 'create' config" >&2
     else
         echo " -> Created config '$config'"
     fi
-
     ;;
 
 ## CREATE NEW NETWORK
@@ -299,11 +298,10 @@ addNet*)
     rt=$?
 
     if [ $rt -ne 0 ]; then
-        echo "$PNAME Error in 'addNet' to config"  >&2
+        echo "$PNAME Error in 'addNet' to config" >&2
     else
         echo " -> added network interface for '$wg: $net"
     fi
-
     ;;
 
 ## ADD PEER
@@ -316,7 +314,7 @@ addNet*)
     fi
 
     if [[ -z "$name" || -z "$addr" || -z "$peerkey" ]]; then
-        echo "$PNAME Error, 'addPeer' missing arguments"
+        echo "$PNAME Error, 'addPeer' missing arguments" >&2
         exit 2
     fi
 
@@ -324,7 +322,7 @@ addNet*)
     rt=$?
 
     if [ $rt -ne 0 ]; then
-        echo "$PNAME Error in addPeer for '$name'"
+        echo "$PNAME Error in addPeer for '$name'" >&2
         exit $rt
     fi
 
@@ -351,27 +349,27 @@ createFrom)
     peerkey=$(cat $pubkeyfile 2>/dev/null)
 
     if [[ -e "$peerconfig" && $clobber -eq 1 ]]; then
-        echo "$PNAME Error, peer config '$peerconfig' already exists"
+        echo "$PNAME Error, peer config '$peerconfig' already exists" >&2
         exit 1
     fi
 
     if [ -z "$name" ]; then
-        echo "$PNAME Error, server(peer) name must be provided with 'createFrom'"
+        echo "$PNAME Error, server(peer) name must be provided with 'createFrom'" >&2
         exit 2
     fi
 
     if [[ -z "$addr" || "$addr" == "null" ]]; then
-        echo "$PNAME Error determining config addr"
+        echo "$PNAME Error determining config addr" >&2
         exit 3
     fi
 
     if [[ -z "$peeraddr" || "$peeraddr" == "null" ]]; then
-        echo "$PNAME Error determining the peer address from '$config' for $id"
+        echo "$PNAME Error determining the peer address from '$config' for $id" >&2
         exit 3
     fi
 
     if [ -z "$peerkey" ]; then
-        echo "$PNAME Error obtaining pubkey from '$pubkeyfile'"
+        echo "$PNAME Error obtaining pubkey from '$pubkeyfile'" >&2
         exit 3
     fi
 
@@ -382,7 +380,7 @@ createFrom)
     rt=$?
 
     if [ $rt -ne 0 ]; then
-        echo "$PNAME Error in addPeer for '$name'"
+        echo "$PNAME Error in addPeer for '$name'" >&2
         exit $rt
     fi
 
@@ -398,7 +396,7 @@ createFrom)
 
 ## DEFAULT NO ACTION
 *)
-    echo "$PNAME Error, action not recognized"
+    echo "$PNAME Error, action not recognized" >&2
     rt=1
     ;;
 esac

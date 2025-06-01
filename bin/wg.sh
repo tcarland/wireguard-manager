@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.05.25"
+VERSION="v25.06.01"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -317,7 +317,7 @@ case "$action" in
             $wgcmd set $wg ${args[@]}
 
             if [ $? -ne 0 ]; then 
-                echo "$PNAME Error, Wireguard $wg failure to set peer $peer"
+                echo "$PNAME Error, Wireguard $wg failure to set peer $peer" >&2
                 continue
             fi
 
@@ -334,7 +334,7 @@ case "$action" in
 
     if [ -n "$nat" ]; then
         if ! which iptables >/dev/null 2>&1; then
-            echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules"
+            echo "$PNAME Warning, 'iptables' not found in PATH, not setting NAT rules" >&2
         elif is_netif "$nat"; then
             if [ "$action" == "down" ]; then
                 ( $iptcmd -D POSTROUTING -t nat -o $nat -j MASQUERADE )
