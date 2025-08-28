@@ -70,7 +70,10 @@ Alternate locations can also be provided.
 wg.sh genkey "/path/to/publickey" "/path/to/privatekey"
 ```
 
-### Config Generator *wireconfig.sh*
+<br>
+    
+## Config Generator
+### wireconfig.sh
 
 An initial configuration can be generated using the *wireconfig.sh* script.
 The script also supports adding a peer to an existing config. The tools all
@@ -81,18 +84,19 @@ for the config may be necessary.
 ./wg-config.sh create 10.0.0.1/24
  -> created config '/root/.config/wg-mgr.yaml'
 
-./wg-config.sh addPeer client1 10.0.0.2 mypeerpublickey
+./wg-config.sh addPeer client1 10.0.0.2 client1pubkey
  -> added peer config for 'client1'
 
 ./wg-config.sh createFrom client1 server1
  -> createFrom: creating config 'wg-mgr-client1.yaml' using peer 'client1'
 ```
 
-Note that the *mypeerpublickey* above represents the client public key 
-that was not created first in the above steps as *genkey* is generally 
-ran on the client host directly.
+Note that the *client1pubkey* above represents the public key of 
+the peer being added which is typically created on the remote host via
+`genkey` though all files could be created locally first as the *genkey* 
+takes optional filenames as arguments.
 
-The resulting Server config: `cat /root/.config/wg-mgr.yaml`
+The resulting (local) config as the server: `cat /root/.config/wg-mgr.yaml`
 ```yaml
 ---
 wireguard:
@@ -104,7 +108,7 @@ wireguard:
     peers:
       mypeer:
         addr: 10.0.0.2
-        pubkey: mypeerpublickey
+        pubkey: client1pubkey
         default: false
         allowed_ips:
           - 10.0.0.2/32
@@ -130,9 +134,9 @@ wireguard:
           - 10.0.0.1/24/32
 ```
 
-## Example
+### WireConfig Example
 
-Another example using *wireconfig.sh* to build the examples found in this repo.
+This example uses *wireconfig.sh* to build the example files found in this repo.
 ```sh
 ./wg.sh genkey
 mkdir test
@@ -151,10 +155,10 @@ mkdir test
 Once the configuration is set, the tunnels can be created by running the 
 `up` action.
 ```sh
-./wg.sh up
+./bin/wg.sh up
 ```
 
 If multiple interfaces are in use, they can be individually targeted as well.
 ```sh
-./wg.sh up wg1
+./bin/wg.sh up wg1
 ```

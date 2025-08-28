@@ -3,7 +3,7 @@
 # wg-config.sh
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.06.01"
+VERSION="v25.08.28"
 
 addr=
 id=
@@ -44,8 +44,8 @@ Actions:
                              Only needed beyond the first 'wg0' interface.
   createFrom <peer> <name> : Creates a client wg config from the server
                              <peer> is the name used for the new config
-                             <name> is a name reference to the server
-                             Note that endpoint should be set for clients.
+                             <name> is a name reference to the local server.
+                             Note that endpoint should be set on clients.
                              Outputs the new config as ./wg-mgr-<peer>.yaml
 "
 
