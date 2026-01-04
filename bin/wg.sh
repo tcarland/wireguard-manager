@@ -3,8 +3,8 @@
 # A script to wrap and automate Wireguard functionality.
 #
 PNAME=${0##\/*}
-AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.09.10"
+AUTHOR="Timothy C. Arland <tcarland@gmail.com>"
+VERSION="v26.01.03"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -24,10 +24,10 @@ iptcmd="iptables"
 
 yaml_schema="
 ## NOTES
-# 'endpoint' is optional for client-side configs.
+# 'endpoint'    is optional for client-side configs.
 # 'allowed-ips' is optional and should not overlap across peers. 
-#   defaults to the peer 'addr'/32
-#   use a default route on client-side for a closed tunnel.
+#               defaults to the peer 'ipaddr'/32
+# use a default route on client-side for a closed tunnel.
 # set 'default' to 'true' to add default route (clients only)
 # set 'keepalive' to a positive value for client NAT situations.
 ---

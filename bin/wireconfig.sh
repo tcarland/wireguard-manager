@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# wg-config.sh
+# wireconfig.sh for creating and updating Wireguard Manager configs.
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v25.09.10"
+VERSION="v26.01.03"
 
 addr=
 id=

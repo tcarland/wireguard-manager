@@ -1,16 +1,19 @@
 Wireguard Manager
 =================
+Copyright (c) 2024-2026 Timothy C. Arland <tcarland at gmail dot com>
+
 
 A tool wrapping the Wireguard CLI for creating and managing 
 Wireguard tunnels using YAML for descriptive configs and ease 
 of automation.
 
-Why the wrapper?   
+Why this wrapper?   
 
 Wireguard tunnels are easy to create and the CLI easily scriptable. 
 This wrapper defines a declaritive YAML configuration to represent 
 wireguard tunnels. This allows for defining more complex meshes
-and automation of wireguard tunnels in a clean and consistent manner.
+and automating wireguard tunnels in a clean and consistent manner
+(and no I did not use anything to generate that description).
 
 
 ## Requirements
@@ -49,14 +52,14 @@ wireguard:
 
 ### Creating key pairs
 
-The *wg.sh* script relies on a few defaults to simplify configuration.
-As shown in the previous yaml examples, the tool uses the default
-locations of `${HOME}/.wg_pvt.key` and `${HOME}/.wg_pub.key` for
-the key pair.
+The *wg.sh* script relies on a few defaults to simplify configuration, 
+though all values can be overwritten. As shown in the previous yaml 
+example, the tool uses the default locations of `${HOME}/.wg_pvt.key` 
+and `${HOME}/.wg_pub.key` for the key pair.
 
-Note that using `sudo` can confuse key locations from the use of `$HOME`. 
+Note that using `sudo` can confuse key locations given the use of `$HOME`. 
 Ensure the key file locations are referenced correctly, ideally using an 
-absolute path to avoid said confusion.
+absolute path to avoid this confusion.
 
 Using the *wg.sh* script with the `genkey` option will generate a key pair
 in the default location.
@@ -77,8 +80,8 @@ wg.sh genkey "/path/to/publickey" "/path/to/privatekey"
 
 An initial configuration can be generated using the *wireconfig.sh* script.
 The script also supports adding a peer to an existing config. The tools all
-default to a config location of `${HOME}/.config/wg-mgr.yaml`. Again, 
-*$HOME* can cause confusion when using `sudo`, so defining absolute paths 
+default to a config location of `${HOME}/.config/wg-mgr.yaml`. Again, use of
+`$HOME` can cause confusion when using `sudo`, so defining absolute paths 
 for the config may be necessary.
 ```sh
 ./wg-config.sh create 10.0.0.1/24
@@ -94,7 +97,7 @@ for the config may be necessary.
 Note that the *client1pubkey* above represents the public key of 
 the peer being added which is typically created on the remote host via
 `genkey` though all files could be created locally first as the *genkey* 
-takes optional filenames as arguments.
+command supports optional filenames as arguments.
 
 The resulting (local) config as the server: `cat /root/.config/wg-mgr.yaml`
 ```yaml
