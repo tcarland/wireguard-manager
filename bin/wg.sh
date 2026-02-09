@@ -4,7 +4,7 @@
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland <tcarland@gmail.com>"
-VERSION="v26.01.03"
+VERSION="v26.02.10"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -227,7 +227,7 @@ case "$action" in
     ;;
 
 # INTERFACE UP|DOWN
-'up'|'down')
+'up'|'start'|'down'|'stop')
     if [[ ! -r "$config" ]]; then
         echo "$PNAME Error: Unable to read config $config" >&2
         rt=1
@@ -256,7 +256,7 @@ case "$action" in
         psk=$(yq -r ".wireguard.${wg}.presharedkeyfile" $config)
         peers=$(yq -r ".wireguard.${wg}.peers | keys | .[]" $config)
 
-        if [ "$action" == "down" ]; then
+        if [[ "$action" == "down" || "$action" == "stop" ]]; then
             ( $ipcmd link set $wg down )
             ( $ipcmd link del $wg )
             continue
@@ -290,7 +290,7 @@ case "$action" in
             default=$(yq -r ".wireguard.${wg}.peers.${peer}.default" $config)
             ping=$(yq -r ".wireguard.${wg}.peers.${peer}.keepalive" $config)
             ips=$(yq -r ".wireguard.${wg}.peers.${peer}.allowed_ips | .[]" $config | tr '\n' ',' | sed 's/,$//' )
-            routes=$(yq -r ".wireguard.${wg}.peers.${peer}.routes | .[]" $config | tr '\n' ',' | sed 's/,$//' )
+            routes=$(yq -r ".wireguard.${wg}.peers.${peer}.routes | .[]" $config | tr '\n' ' ' | sed 's/ $//' )
             
             args=("peer" "$peerkey")
 

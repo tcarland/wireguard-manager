@@ -3,7 +3,7 @@
 # wireconfig.sh for creating and updating Wireguard Manager configs.
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v26.01.03"
+VERSION="v26.02.10"
 
 addr=
 id=
@@ -40,7 +40,7 @@ Options:
 Actions:
   create  <ip>             : Create a new config using <ip> as a CIDR.
   addPeer <id> <ip> <key>  : Adds a peer object to a config.
-  addNet  <netif> <addr>   : Adds a new network interface to the config.
+  addNet  <netif>  <addr>  : Adds a new network interface to the config.
                              Only needed beyond the first 'wg0' interface.
   createFrom <peer> <name> : Creates a client wg config from the server
                              <peer> is the name used for the new config
