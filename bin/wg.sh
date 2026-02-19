@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-#  
+#
 # A script to wrap and automate Wireguard functionality.
 #
 PNAME=${0##\/*}
 AUTHOR="Timothy C. Arland <tcarland@gmail.com>"
-VERSION="v26.02.10"
+VERSION="v26.02.20"
 
 config="${WG_MGR_CONFIG:-${HOME}/.config/wg-mgr.yaml}"
 default_pubfile="${WG_MGR_PUBKEY:-${HOME}/.wg_pub.key}"
@@ -25,7 +25,7 @@ iptcmd="iptables"
 yaml_schema="
 ## NOTES
 # 'endpoint'    is optional for client-side configs.
-# 'allowed-ips' is optional and should not overlap across peers. 
+# 'allowed-ips' is optional and should not overlap across peers.
 #               defaults to the peer 'ipaddr'/32
 # use a default route on client-side for a closed tunnel.
 # set 'default' to 'true' to add default route (clients only)
@@ -63,7 +63,7 @@ $PNAME [options] <action> [interface]
 Options:
   -C|--create <yaml>  : Create a base yaml config from the template.
   -f|--file   <yaml>  : Yaml config path, default is '$config'
-  -N|--nat   <extif>  : Enable/Disable NAT for traffic leaving <extif> 
+  -N|--nat   <extif>  : Enable/Disable NAT for traffic leaving <extif>
   -h|--help           : Show usage info and exit.
   -V|--version        : Show version info and exit.
 
@@ -71,8 +71,8 @@ Options:
    up                 : Enables wg interfaces as defined by the config.
    down               : Disables wg interfaces.
    genkey <pub> <pvt> : Generate a Wireguard key pair. Optionally takes
-                        two file arguments, or uses the default locations 
-                          of  '$default_pubfile' 
+                        two file arguments, or uses the default locations
+                          of  '$default_pubfile'
                           and '$default_pvtfile'
    genpsk  <pskfile>  : Create PreShared Key file, default '$default_pskfile'
    status             : Shows the current wg config and device info.
@@ -201,7 +201,7 @@ case "$action" in
         echo "$PNAME Error running 'genkey'" >&2
         break
     fi
-    
+
     echo " -> Public Key: "
     cat $pubfile
     ;;
@@ -262,7 +262,7 @@ case "$action" in
             continue
         fi
 
-        if [[ ! -e $pvt || ! -e $pub  ]]; then 
+        if [[ ! -e $pvt || ! -e $pub  ]]; then
             echo "$PNAME Error in key pair, file(s) not found" >&2
             rt=2
             break
@@ -273,7 +273,7 @@ case "$action" in
         ( $wgcmd set $wg listen-port $port private-key $pvt )
         ( $ipcmd link set $wg up )
 
-        if [ $? -ne 0 ]; then 
+        if [ $? -ne 0 ]; then
             echo "$PNAME Error configuring link for $wg" >&2
             rt=2
             break
@@ -291,7 +291,7 @@ case "$action" in
             ping=$(yq -r ".wireguard.${wg}.peers.${peer}.keepalive" $config)
             ips=$(yq -r ".wireguard.${wg}.peers.${peer}.allowed_ips | .[]" $config | tr '\n' ',' | sed 's/,$//' )
             routes=$(yq -r ".wireguard.${wg}.peers.${peer}.routes | .[]" $config | tr '\n' ' ' | sed 's/ $//' )
-            
+
             args=("peer" "$peerkey")
 
             # optional endpoint
@@ -316,12 +316,12 @@ case "$action" in
             echo " -> wg set $wg ${args[@]}"
             $wgcmd set $wg ${args[@]}
 
-            if [ $? -ne 0 ]; then 
+            if [ $? -ne 0 ]; then
                 echo "$PNAME Error, Wireguard $wg failure to set peer $peer" >&2
                 continue
             fi
 
-            for route in $routes; do 
+            for route in $routes; do
                 echo " -> ip route $route via $addr dev $wg"
                 ( $ipcmd route add $route via $addr dev $wg 2>/dev/null )
             done

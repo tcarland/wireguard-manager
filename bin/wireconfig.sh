@@ -3,7 +3,7 @@
 # wireconfig.sh for creating and updating Wireguard Manager configs.
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v26.02.10"
+VERSION="v26.02.20"
 
 addr=
 id=
@@ -32,7 +32,7 @@ Options:
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
   -i|--interface  <netif>  : Sets the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
-  -o|--output     <path>   : The output path for client configs 'createFrom' 
+  -o|--output     <path>   : The output path for client configs 'createFrom'
                              default output path is '.'
   -p|--port       <val>    : Set the UDP port number, default: $port
   -X|--clobber             : Overwrite any existing configs (dangerous)
@@ -94,7 +94,7 @@ add_peer() {
 
     ( yq ".wireguard.${wg}.peers.${name} = \
     { \"addr\": \"${ip}\", \"pubkey\": \"${key}\", \"default\": false }" -i $cfg )
-    
+
     return $?
 }
 
@@ -124,7 +124,7 @@ set_allowed_ips() {
     local name="$2"
     local ip=$(echo "$3" | awk -F'/' '{ print $1 }')
     local cfg="$4"
-    
+
     ( yq ".wireguard.${wg}.peers.${name}.allowed_ips = [ \"${ip}/32\" ]" -i $cfg )
 
     return $?
@@ -253,8 +253,8 @@ case "$action" in
     if [ -z "$addr" ]; then
         echo "$PNAME Error, 'create' requires CIDR Address" >&2
         exit 1
-    fi 
-    
+    fi
+
     if ! net_is_valid "$net"; then
         echo "$PNAME Error, interface must follow wgX naming convention" >&2
         exit 2
@@ -334,7 +334,7 @@ addNet*)
         set_keepalive "$net" "$name" "$keepalive" "$config"
     fi
 
-    set_allowed_ips "$net" "$name" "$addr" "$config" 
+    set_allowed_ips "$net" "$name" "$addr" "$config"
 
     echo " -> addPeer added client '$name'"
     ;;
@@ -391,7 +391,7 @@ createFrom)
         set_keepalive "$net" "$name" "$keepalive" "$peerconfig"
     fi
 
-    set_allowed_ips "$net" "$name" "$peeraddr" "$peerconfig" 
+    set_allowed_ips "$net" "$name" "$peeraddr" "$peerconfig"
     ;;
 
 ## DEFAULT NO ACTION

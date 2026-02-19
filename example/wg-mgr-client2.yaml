@@ -3,8 +3,8 @@ wireguard:
   wg0:
     addr: "10.0.0.3/24"
     port: "55820"
-    privatekeyfile: "/root/.wg_pvt.key"
-    publickeyfile: "/root/.wg_pub.key"
+    privatekeyfile: "./test/.wg_pvt.key"
+    publickeyfile: "./test/.wg_pub.key"
     peers:
       server1:
         addr: "10.0.0.1/24"
@@ -13,4 +13,4 @@ wireguard:
         endpoint: "server:55820"
         keepalive: 30
         allowed_ips:
-          - 10.0.0.1/24/32
+          - 10.0.0.1/32
