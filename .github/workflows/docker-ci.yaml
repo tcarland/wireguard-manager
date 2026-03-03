@@ -1,0 +1,16 @@
+name: Test WireConfig
+on:
+  push:
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run WireConfig Tests
+        run: |
+          docker build -f Containerfile -t wireconfig-test .
+          docker run --rm wireconfig-test

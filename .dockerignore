@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in test container)
+*.md
+!README.md
+
+# Test artifacts
+test/
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sw*
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.o
+*.so
+*.a
+
+# Temporary files
+tmp/
+temp/
