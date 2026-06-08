@@ -3,7 +3,7 @@
 # wireconfig.sh for creating and updating Wireguard Manager configs.
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v26.02.20"
+VERSION="v26.06.09"
 
 addr=
 id=
@@ -30,7 +30,7 @@ $PNAME [options] <action>
 Options:
   -c|--config     <file>   : The config file if not default '$config'.
   -E|--endpoint   <str>    : Set a peer endpoint when using 'addPeer'
-  -i|--interface  <netif>  : Sets the interface to use, default: $net
+  -i|--interface  <netif>  : Set the interface to use, default: $net
   -k|--keepalive  <val>    : Set the peer keepalive value, default: $keepalive
   -o|--output     <path>   : The output path for client configs 'createFrom'
                              default output path is '.'

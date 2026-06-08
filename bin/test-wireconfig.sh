@@ -25,6 +25,8 @@ GENERATED_FILES=(
 WG_MGR_PUBKEY="$TEST_DIR/.wg_pub.key"
 WG_MGR_PVTKEY="$TEST_DIR/.wg_pvt.key"
 
+TEST_CONFIG="$TEST_DIR/wg-mgr-server.yaml"
+
 echo "=========================================="
 echo "WireConfig Tests"
 echo "=========================================="
@@ -40,14 +42,14 @@ export WG_MGR_PVTKEY
 
 echo "-> Running WireConfig Example commands..."
 
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" create 10.0.0.1/24
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" addPeer client1 10.0.0.2/24 client1pubkey
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" addPeer client2 10.0.0.3/24 client2pubkey
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" addNetwork wg1 10.0.1.1/24
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" -i wg1 addPeer client3 10.0.1.2/24 client3pubkey
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" -E server:55820 -k 30 createFrom client1 server1
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" -E server:55820 -k 30 createFrom client2 server1
-./bin/wireconfig.sh -c "$TEST_DIR/wg-mgr-server.yaml" -o "$TEST_DIR" -E server:55820 -k 30 -i wg1 createFrom client3 server1
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" create 10.0.0.1/24
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" addPeer client1 10.0.0.2/24 client1pubkey
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" addPeer client2 10.0.0.3/24 client2pubkey
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" addNetwork wg1 10.0.1.1/24
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" -i wg1 addPeer client3 10.0.1.2/24 client3pubkey
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" -E server:55820 -k 30 createFrom client1 server1
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" -E server:55820 -k 30 createFrom client2 server1
+./bin/wireconfig.sh -c "$TEST_CONFIG" -o "$TEST_DIR" -E server:55820 -k 30 -i wg1 createFrom client3 server1
 
 echo -e "${GREEN}✓ All wireconfig commands completed${NC}"
 echo ""
