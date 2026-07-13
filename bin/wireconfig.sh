@@ -3,7 +3,7 @@
 # wireconfig.sh for creating and updating Wireguard Manager configs.
 PNAME=${0##*\/}
 AUTHOR="Timothy C. Arland  <tcarland@gmail.com>"
-VERSION="v26.06.09"
+VERSION="v26.07.11"
 
 addr=
 id=

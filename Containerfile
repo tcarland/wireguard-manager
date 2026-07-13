@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     diffutils \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://github.com/mikefarah/yq/releases/download/v4.40.5/yq_linux_amd64 -O /usr/bin/yq && \
+RUN wget https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 -O /usr/bin/yq && \
     chmod +x /usr/bin/yq
 
 WORKDIR /opt/wireguard-manager
