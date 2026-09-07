@@ -19,7 +19,7 @@ and automating wireguard tunnels in a clean and consistent manner
 ## Requirements
 
 - bash v4+
-- wireguard 
+- wireguard (wireguard-tools)
 - [yq](https://github.com/mikefarah/yq) v4+
 
 
