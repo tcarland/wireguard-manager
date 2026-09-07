@@ -1,5 +1,6 @@
 # Git
 .git
+.github
 .gitignore
 
 # Documentation (not needed in test container)
@@ -11,6 +12,7 @@ test/
 *.log
 
 # IDE and editor files
+.cache
 .vscode/
 .idea/
 *.sw*
@@ -19,6 +21,12 @@ test/
 # OS files
 .DS_Store
 Thumbs.db
+
+.crt
+.cert
+.jks
+.key
+.pem
 
 # Build artifacts
 *.o
